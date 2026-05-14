@@ -4,22 +4,23 @@ from bs4 import BeautifulSoup
 from telebot import types
 import os
 
-# إعدادات البوت الأساسية
+# إعدادات البوت
 API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
-ADMIN_ID = 8388141188 # ايديك يا عواد
 bot = telebot.TeleBot(API_TOKEN)
 
-# قائمة القنوات للاشتراك الإجباري
+# القنوات (تأكد من وجود البوت كمشرف)
 CHANNELS = ["@v_o_lti", "@jzbznznx", "@bsbsb8_djbd"]
 
-# قاعدة بيانات الدول والمفاتيح الخاصة بها
+# قائمة الدول المتاحة
 COUNTRIES = {
-    "usa": {"name": "أمريكا 🇺🇸", "code": "1"},
-    "uk": {"name": "بريطانيا 🇬🇧", "code": "44"},
-    "france": {"name": "فرنسا 🇫🇷", "code": "33"},
-    "sweden": {"name": "السويد 🇸🇪", "code": "46"},
-    "malaysia": {"name": "ماليزيا 🇲🇾", "code": "60"},
-    "indonesia": {"name": "إندونيسيا 🇮🇩", "code": "62"}
+    "ger": {"name": "Germany 🇩🇪", "code": "49"},
+    "usa": {"name": "USA 🇺🇸", "code": "1"},
+    "uk": {"name": "UK 🇬🇧", "code": "44"},
+    "fra": {"name": "France 🇫🇷", "code": "33"},
+    "mys": {"name": "Malaysia 🇲🇾", "code": "60"},
+    "idn": {"name": "Indonesia 🇮🇩", "code": "62"},
+    "rus": {"name": "Russia 🇷🇺", "code": "7"},
+    "swe": {"name": "Sweden 🇸🇪", "code": "46"}
 }
 
 def is_subscribed(user_id):
@@ -31,9 +32,8 @@ def is_subscribed(user_id):
         return True
     except: return True
 
-def fetch_all_numbers():
-    # دالة لجلب الأرقام من المصادر وتصنيفها
-    nums = []
+def fetch_numbers(country_code):
+    all_nums = []
     headers = {'User-Agent': 'Mozilla/5.0'}
     urls = ["https://receive-smss.com/", "https://sms-online.co/receive-free-sms"]
     for url in urls:
@@ -42,49 +42,58 @@ def fetch_all_numbers():
             soup = BeautifulSoup(res.text, 'html.parser')
             for item in soup.find_all(['a', 'span', 'td']):
                 txt = item.text.strip().replace(" ", "")
-                if txt.startswith('+') and 10 < len(txt) < 16:
-                    if txt not in nums: nums.append(txt)
+                if txt.startswith(f'+{country_code}') and 10 < len(txt) < 16:
+                    if txt not in all_nums: all_nums.append(txt)
         except: continue
-    return nums
+    return all_nums
 
 @bot.message_handler(commands=['start'])
 def start(message):
     if is_subscribed(message.from_user.id):
-        markup = types.InlineKeyboardMarkup(row_width=2)
-        # إضافة أزرار الدول بناءً على القائمة أعلاه
-        buttons = [types.InlineKeyboardButton(c['name'], callback_data=f"country_{k}") for k, c in COUNTRIES.items()]
-        markup.add(*buttons)
-        bot.send_message(message.chat.id, "🌍 **مرحباً بك في قسم الدول!**\nاختر الدولة التي تريد أرقاماً منها:", reply_markup=markup, parse_mode="Markdown")
-    else:
-        # أزرار الاشتراك الإجباري في حال عدم الاشتراك
         markup = types.InlineKeyboardMarkup(row_width=1)
         markup.add(
-            types.InlineKeyboardButton("📢 قناة 1", url=f"https://t.me/{CHANNELS[0][1:]}"),
-            types.InlineKeyboardButton("📢 قناة 2", url="https://t.me/+2eq5lZ_hVhA0NGQ8"),
-            types.InlineKeyboardButton("✅ تحقق", callback_data="verify")
+            types.InlineKeyboardButton("🔵 Facebook", callback_data="select_service_FB"),
+            types.InlineKeyboardButton("🟢 WhatsApp", callback_data="select_service_WA"),
+            types.InlineKeyboardButton("🔵 Telegram", callback_data="select_service_TG"),
+            types.InlineKeyboardButton("🟣 Instagram", callback_data="select_service_IG")
         )
-        bot.send_message(message.chat.id, "⚠️ **يجب الانضمام للقنوات للمتابعة:**", reply_markup=markup)
+        bot.send_message(message.chat.id, "👋 Welcome, **Awad**\n\nSelect a Service:", reply_markup=markup, parse_mode="Markdown")
+    else:
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        markup.add(
+            types.InlineKeyboardButton("📢 Channel 1", url="https://t.me/v_o_lti"),
+            types.InlineKeyboardButton("📢 Channel 2", url="https://t.me/+2eq5lZ_hVhA0NGQ8"),
+            types.InlineKeyboardButton("✅ Verify Subscription", callback_data="verify")
+        )
+        bot.send_message(message.chat.id, "⚠️ Please join our channels first:", reply_markup=markup)
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith("country_"))
+@bot.callback_query_handler(func=lambda call: call.data.startswith("select_service_"))
+def show_countries(call):
+    service = call.data.split("_")[2]
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    buttons = [types.InlineKeyboardButton(c['name'], callback_data=f"getnum_{service}_{k}") for k, c in COUNTRIES.items()]
+    markup.add(*buttons)
+    markup.add(types.InlineKeyboardButton("🔙 Back to Services", callback_data="back_main"))
+    
+    bot.edit_message_text(f"🌍 **SMS Panel**\n📍 Selected: {service}\n\nSelect Country:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("getnum_"))
 def show_numbers(call):
-    country_key = call.data.split("_")[1]
-    country_info = COUNTRIES[country_key]
-    bot.answer_callback_query(call.id, f"جاري جلب أرقام {country_info['name']}...")
+    _, service, country_key = call.data.split("_")
+    country = COUNTRIES[country_key]
+    bot.answer_callback_query(call.id, f"Searching for {country['name']} numbers...")
     
-    all_nums = fetch_all_numbers()
-    # تصفية الأرقام بناءً على مفتاح الدولة المختار
-    filtered = [n for n in all_nums if n.startswith(f"+{country_info['code']}")]
-    
-    if filtered:
-        msg = f"📲 **أرقام متاحة لـ {country_info['name']}:**\n\n"
-        msg += "\n".join([f"`{n}`" for n in filtered[:10]])
-        markup = types.InlineKeyboardMarkup().add(types.InlineKeyboardButton("🔙 عودة للقائمة", callback_data="back_to_list"))
+    nums = fetch_numbers(country['code'])
+    if nums:
+        msg = f"✅ **{service} Numbers for {country['name']}:**\n\n"
+        msg += "\n".join([f"⮕ `{n}`" for n in nums[:10]])
+        markup = types.InlineKeyboardMarkup().add(types.InlineKeyboardButton("🔙 Back to Countries", callback_data=f"select_service_{service}"))
         bot.edit_message_text(msg, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
     else:
-        bot.send_message(call.message.chat.id, f"❌ عذراً، لا توجد أرقام متاحة حالياً لـ {country_info['name']}")
+        bot.answer_callback_query(call.id, "❌ No numbers available for this country.", show_alert=True)
 
-@bot.callback_query_handler(func=lambda call: call.data == "back_to_list")
-def back(call):
+@bot.callback_query_handler(func=lambda call: call.data == "back_main" or call.data == "verify")
+def back_to_start(call):
     bot.delete_message(call.message.chat.id, call.message.message_id)
     start(call.message)
 
