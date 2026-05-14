@@ -3,21 +3,26 @@ import requests
 from bs4 import BeautifulSoup
 from telebot import types
 
-# --- إعدادات أساسية ---
+# --- ⚠️ إعداداتك الشخصية (عدلها من هنا) ---
 API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
-CHANNELS = ['@YourChannelUsername'] # ضع معرف قناتك هنا (مثال: @dmar_channel)
-DEVELOPER_ID = "YourTelegramID" # ضع معرفك الشخصي هنا ليتواصلوا معك
+
+# 1. ضع هنا معرف قناتك (يجب أن يبدأ بـ @)
+MY_CHANNELS = ['@v_o_lti'] 
+
+# 2. ضع هنا ايديك (ID) أو يوزرك لكي يتواصل معك الناس
+MY_TELEGRAM_ID = "v_o_lti" 
+
 bot = telebot.TeleBot(API_TOKEN)
 
-# --- دالة التحقق من الاشتراك الإجباري ---
+# --- دالة التحقق من الاشتراك ---
 def is_subscribed(user_id):
-    for channel in CHANNELS:
+    for channel in MY_CHANNELS:
         try:
             status = bot.get_chat_member(channel, user_id).status
             if status in ['left', 'kicked']:
                 return False
         except:
-            return False # في حال لم يكن البوت مشرفاً أو القناة خطأ
+            return False 
     return True
 
 # --- دالة جلب الأرقام ---
@@ -34,21 +39,7 @@ def fetch_numbers(country_code):
     except: pass
     return nums[:10]
 
-# --- أمر البداية مع التحقق ---
-@bot.message_handler(commands=['start'])
-def start(message):
-    if not is_subscribed(message.from_user.id):
-        # إذا لم يشترك تظهر له رسالة الاشتراك الإجباري
-        markup = types.InlineKeyboardMarkup(row_width=1)
-        for channel in CHANNELS:
-            markup.add(types.InlineKeyboardButton("📢 انضم للقناة أولاً", url=f"https://t.me/{channel.replace('@','')}"))
-        markup.add(types.InlineKeyboardButton("✅ تم الاشتراك، دخول البوت", callback_data="check_sub"))
-        
-        bot.send_message(message.chat.id, "⚠️ **عذراً عزيزي!**\nيجب عليك الاشتراك في قناة البوت الرسمية لتتمكن من استخدامه.", reply_markup=markup, parse_mode="Markdown")
-    else:
-        show_main_menu(message.chat.id)
-
-# --- عرض القائمة الرئيسية (الخدمات) ---
+# --- القائمة الرئيسية ---
 def show_main_menu(chat_id):
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
@@ -56,12 +47,21 @@ def show_main_menu(chat_id):
         types.InlineKeyboardButton("👤 Facebook", callback_data="svc_Facebook"),
         types.InlineKeyboardButton("✈️ Telegram", callback_data="svc_Telegram"),
         types.InlineKeyboardButton("📸 Instagram", callback_data="svc_Instagram"),
-        types.InlineKeyboardButton("🎵 TikTok", callback_data="svc_TikTok"),
-        types.InlineKeyboardButton("👨‍💻 تواصل مع المطور", url=f"tg://user?id={DEVELOPER_ID}")
+        types.InlineKeyboardButton("👨‍💻 تواصل مع المطور", url=f"https://t.me/{MY_TELEGRAM_ID}")
     )
-    bot.send_message(chat_id, "⚔️ **أهلاً بك في بوت دمار المقنع**\nاختر الخدمة المطلوبة:", reply_markup=markup, parse_mode="Markdown")
+    bot.send_message(chat_id, "⚔️ **أهلاً بك في بوت دمار المقنع**\nاختر الخدمة المطلوبة من الأزرار أدناه:", reply_markup=markup, parse_mode="Markdown")
 
-# --- معالج أزرار التحقق والخدمات ---
+@bot.message_handler(commands=['start'])
+def start(message):
+    if not is_subscribed(message.from_user.id):
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        for channel in MY_CHANNELS:
+            markup.add(types.InlineKeyboardButton("📢 انضم لقناتي هنا", url=f"https://t.me/{channel.replace('@','')}"))
+        markup.add(types.InlineKeyboardButton("✅ تم الاشتراك، دخول", callback_data="check_sub"))
+        bot.send_message(message.chat.id, "⚠️ **عذراً يا بطل!**\nيجب عليك الاشتراك في قناتي أولاً لتشغيل البوت.", reply_markup=markup, parse_mode="Markdown")
+    else:
+        show_main_menu(message.chat.id)
+
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callbacks(call):
     if call.data == "check_sub":
@@ -69,21 +69,22 @@ def handle_callbacks(call):
             bot.delete_message(call.message.chat.id, call.message.message_id)
             show_main_menu(call.message.chat.id)
         else:
-            bot.answer_callback_query(call.id, "❌ لم تشترك في القناة بعد!", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ اشترك في القناة أولاً ثم اضغط هنا!", show_alert=True)
 
     elif call.data.startswith("svc_"):
         service = call.data.split("_")[1]
         markup = types.InlineKeyboardMarkup(row_width=2)
+        # قائمة الدول
         countries = [("Germany 🇩🇪", "49"), ("USA 🇺🇸", "1"), ("UK 🇬🇧", "44"), ("France 🇫🇷", "33")]
         btns = [types.InlineKeyboardButton(name, callback_data=f"get_{service}_{code}") for name, code in countries]
         markup.add(*btns)
         markup.add(types.InlineKeyboardButton("🔙 عودة", callback_data="back_home"))
-        bot.edit_message_text(f"📍 **الخدمة:** {service}\nاختر الدولة:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+        bot.edit_message_text(f"📍 **الخدمة:** {service}\nاختر الدولة لجلب الأرقام:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data.startswith("get_"):
         _, service, code = call.data.split("_")
-        bot.answer_callback_query(call.id, "🔄 جاري جلب الأرقام...")
-        icons = {"WhatsApp": "🟢", "Facebook": "👤", "Telegram": "✈️", "Instagram": "📸", "TikTok": "🎵"}
+        bot.answer_callback_query(call.id, "🔄 جاري البحث...")
+        icons = {"WhatsApp": "🟢", "Facebook": "👤", "Telegram": "✈️", "Instagram": "📸"}
         icon = icons.get(service, "🔹")
         
         numbers = fetch_numbers(code)
@@ -94,7 +95,7 @@ def handle_callbacks(call):
             markup.add(types.InlineKeyboardButton("🔙 عودة للدول", callback_data=f"svc_{service}"))
             bot.edit_message_text(f"✅ **أرقام {service} المتاحة:**", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
         else:
-            bot.answer_callback_query(call.id, "❌ لا توجد أرقام حالياً", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ لا توجد أرقام متاحة حالياً لهذه الدولة", show_alert=True)
 
     elif call.data == "back_home":
         bot.delete_message(call.message.chat.id, call.message.message_id)
@@ -102,6 +103,6 @@ def handle_callbacks(call):
 
     elif call.data.startswith("copy_"):
         num = call.data.split("_")[1]
-        bot.answer_callback_query(call.id, f"تم اختيار: {num}\nجاري التحويل لاستلام الكود...", show_alert=True)
+        bot.answer_callback_query(call.id, f"تم اختيار: {num}\nاستخدمه الآن في التطبيق!", show_alert=True)
 
 bot.infinity_polling()
