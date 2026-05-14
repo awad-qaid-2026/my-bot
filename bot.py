@@ -3,27 +3,25 @@ import requests
 from bs4 import BeautifulSoup
 from telebot import types
 
-# --- إعدادات البوت ---
+# --- إعدادات أساسية ---
 API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
+CHANNELS = ['@YourChannelUsername'] # ضع معرف قناتك هنا (مثال: @dmar_channel)
+DEVELOPER_ID = "YourTelegramID" # ضع معرفك الشخصي هنا ليتواصلوا معك
 bot = telebot.TeleBot(API_TOKEN)
 
-# --- قنوات الاشتراك الإجباري (ضع يوزرات قنواتك هنا) ---
-# ملاحظة: يجب أن يكون البوت مشرفاً في هذه القنوات
-CHANNELS = ["@v_o_lti", "@jzbznznx"] 
-
-# --- دالة التحقق من الاشتراك ---
-def is_user_subscribed(user_id):
-    try:
-        for channel in CHANNELS:
-            member = bot.get_chat_member(channel, user_id)
-            if member.status in ['left', 'kicked']:
+# --- دالة التحقق من الاشتراك الإجباري ---
+def is_subscribed(user_id):
+    for channel in CHANNELS:
+        try:
+            status = bot.get_chat_member(channel, user_id).status
+            if status in ['left', 'kicked']:
                 return False
-        return True
-    except Exception:
-        return True # في حال وجود خطأ تقني يكمل العمل
+        except:
+            return False # في حال لم يكن البوت مشرفاً أو القناة خطأ
+    return True
 
-# --- دالة سحب الأرقام ---
-def fetch_live_numbers(country_code):
+# --- دالة جلب الأرقام ---
+def fetch_numbers(country_code):
     headers = {'User-Agent': 'Mozilla/5.0'}
     url = f"https://receive-smss.com/free-sms-numbers/{country_code}"
     nums = []
@@ -36,91 +34,74 @@ def fetch_live_numbers(country_code):
     except: pass
     return nums[:10]
 
-# --- قائمة الخدمات والأيقونات ---
-SERVICES = {
-    "WhatsApp": "🟢",
-    "Facebook": "👤",
-    "Telegram": "✈️",
-    "Instagram": "📸",
-    "TikTok": "🎵"
-}
-
-# --- الأمر start ---
+# --- أمر البداية مع التحقق ---
 @bot.message_handler(commands=['start'])
 def start(message):
-    user_id = message.from_user.id
-    
-    if is_user_subscribed(user_id):
-        # إذا كان مشتركاً تظهر له الخدمات مباشرة
-        show_services(message.chat.id)
-    else:
-        # إذا لم يشترك تظهر له أزرار القنوات فقط
+    if not is_subscribed(message.from_user.id):
+        # إذا لم يشترك تظهر له رسالة الاشتراك الإجباري
         markup = types.InlineKeyboardMarkup(row_width=1)
-        for i, ch in enumerate(CHANNELS, 1):
-            markup.add(types.InlineKeyboardButton(f"📢 انضم للقناة {i}", url=f"https://t.me/{ch[1:]}"))
+        for channel in CHANNELS:
+            markup.add(types.InlineKeyboardButton("📢 انضم للقناة أولاً", url=f"https://t.me/{channel.replace('@','')}"))
+        markup.add(types.InlineKeyboardButton("✅ تم الاشتراك، دخول البوت", callback_data="check_sub"))
         
-        markup.add(types.InlineKeyboardButton("✅ تحقق من الاشتراك", callback_data="check_sub"))
-        
-        bot.send_message(
-            message.chat.id,
-            "⚠️ **عذراً عزيزي، يجب عليك الاشتراك في قنوات البوت أولاً لتتمكن من استخدامه!**\n\nبعد الاشتراك اضغط على زر التحقق بالأسفل 👇",
-            reply_markup=markup,
-            parse_mode="Markdown"
-        )
+        bot.send_message(message.chat.id, "⚠️ **عذراً عزيزي!**\nيجب عليك الاشتراك في قناة البوت الرسمية لتتمكن من استخدامه.", reply_markup=markup, parse_mode="Markdown")
+    else:
+        show_main_menu(message.chat.id)
 
-# --- عرض الخدمات ---
-def show_services(chat_id):
+# --- عرض القائمة الرئيسية (الخدمات) ---
+def show_main_menu(chat_id):
     markup = types.InlineKeyboardMarkup(row_width=1)
-    for svc, icon in SERVICES.items():
-        markup.add(types.InlineKeyboardButton(f"{icon} {svc}", callback_data=f"svc_{svc}"))
-    
-    bot.send_message(chat_id, "⚔️ **أهلاً بك في دمار المقنع**\nإختر الخدمة التي تريد تفعيلها:", reply_markup=markup, parse_mode="Markdown")
+    markup.add(
+        types.InlineKeyboardButton("🟢 WhatsApp", callback_data="svc_WhatsApp"),
+        types.InlineKeyboardButton("👤 Facebook", callback_data="svc_Facebook"),
+        types.InlineKeyboardButton("✈️ Telegram", callback_data="svc_Telegram"),
+        types.InlineKeyboardButton("📸 Instagram", callback_data="svc_Instagram"),
+        types.InlineKeyboardButton("🎵 TikTok", callback_data="svc_TikTok"),
+        types.InlineKeyboardButton("👨‍💻 تواصل مع المطور", url=f"tg://user?id={DEVELOPER_ID}")
+    )
+    bot.send_message(chat_id, "⚔️ **أهلاً بك في بوت دمار المقنع**\nاختر الخدمة المطلوبة:", reply_markup=markup, parse_mode="Markdown")
 
-# --- معالجة الضغط على الأزرار ---
+# --- معالج أزرار التحقق والخدمات ---
 @bot.callback_query_handler(func=lambda call: True)
-def callback_handler(call):
-    user_id = call.from_user.id
-
-    # 1. التحقق من الاشتراك
+def handle_callbacks(call):
     if call.data == "check_sub":
-        if is_user_subscribed(user_id):
+        if is_subscribed(call.from_user.id):
             bot.delete_message(call.message.chat.id, call.message.message_id)
-            show_services(call.message.chat.id)
+            show_main_menu(call.message.chat.id)
         else:
-            bot.answer_callback_query(call.id, "❌ لم تشترك في جميع القنوات بعد!", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ لم تشترك في القناة بعد!", show_alert=True)
 
-    # 2. اختيار الخدمة (عرض الدول)
     elif call.data.startswith("svc_"):
         service = call.data.split("_")[1]
         markup = types.InlineKeyboardMarkup(row_width=2)
         countries = [("Germany 🇩🇪", "49"), ("USA 🇺🇸", "1"), ("UK 🇬🇧", "44"), ("France 🇫🇷", "33")]
-        btns = [types.InlineKeyboardButton(n, callback_data=f"get_{service}_{c}") for n, c in countries]
+        btns = [types.InlineKeyboardButton(name, callback_data=f"get_{service}_{code}") for name, code in countries]
         markup.add(*btns)
-        markup.add(types.InlineKeyboardButton("🔙 عودة", callback_data="back_main"))
-        bot.edit_message_text(f"📍 خدمة: {service}\nإختر الدولة الآن:", call.message.chat.id, call.message.message_id, reply_markup=markup)
+        markup.add(types.InlineKeyboardButton("🔙 عودة", callback_data="back_home"))
+        bot.edit_message_text(f"📍 **الخدمة:** {service}\nاختر الدولة:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
-    # 3. عرض الأرقام (تصميم الأزرار الطولية)
     elif call.data.startswith("get_"):
         _, service, code = call.data.split("_")
-        icon = SERVICES.get(service, "🔹")
         bot.answer_callback_query(call.id, "🔄 جاري جلب الأرقام...")
+        icons = {"WhatsApp": "🟢", "Facebook": "👤", "Telegram": "✈️", "Instagram": "📸", "TikTok": "🎵"}
+        icon = icons.get(service, "🔹")
         
-        nums = fetch_live_numbers(code)
-        if nums:
+        numbers = fetch_numbers(code)
+        if numbers:
             markup = types.InlineKeyboardMarkup(row_width=1)
-            for n in nums:
+            for n in numbers:
                 markup.add(types.InlineKeyboardButton(f"{icon} {n}", callback_data=f"copy_{n}"))
             markup.add(types.InlineKeyboardButton("🔙 عودة للدول", callback_data=f"svc_{service}"))
-            bot.edit_message_text(f"✅ أرقام {service} المتاحة:\nاضغط على الرقم لنسخه واستخدامه:", call.message.chat.id, call.message.message_id, reply_markup=markup)
+            bot.edit_message_text(f"✅ **أرقام {service} المتاحة:**", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
         else:
-            bot.answer_callback_query(call.id, "❌ لا توجد أرقام حالياً لهذه الدولة", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ لا توجد أرقام حالياً", show_alert=True)
 
-    elif call.data == "back_main":
+    elif call.data == "back_home":
         bot.delete_message(call.message.chat.id, call.message.message_id)
-        show_services(call.message.chat.id)
+        show_main_menu(call.message.chat.id)
 
     elif call.data.startswith("copy_"):
         num = call.data.split("_")[1]
-        bot.answer_callback_query(call.id, f"تم اختيار: {num}\nقم بنسخه الآن!", show_alert=True)
+        bot.answer_callback_query(call.id, f"تم اختيار: {num}\nجاري التحويل لاستلام الكود...", show_alert=True)
 
 bot.infinity_polling()
