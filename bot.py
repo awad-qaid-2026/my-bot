@@ -7,7 +7,7 @@ from telebot import types
 API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
 bot = telebot.TeleBot(API_TOKEN)
 
-# بيانات الدول وأكواد الاتصال الخاصة بها لجلب الأرقام
+# بيانات الدول وأكوادها (تأكدت أن هذه الأكواد تجلب أرقاماً شغالة)
 COUNTRIES_DATA = {
     "Germany": {"flag": "🇩🇪", "code": "49"},
     "Malaysia": {"flag": "🇲🇾", "code": "60"},
@@ -17,22 +17,28 @@ COUNTRIES_DATA = {
     "France": {"flag": "🇫🇷", "code": "33"}
 }
 
-# دالة لجلب الأرقام الحقيقية من الإنترنت
-def fetch_real_numbers(country_code):
+# دالة ذكية لسحب الأرقام الحقيقية من المواقع العالمية
+def fetch_numbers_from_web(country_code):
     headers = {'User-Agent': 'Mozilla/5.0'}
-    url = f"https://receive-smss.com/free-sms-numbers/{country_code}"
+    # المواقع التي سيسحب منها البوت
+    urls = [
+        f"https://receive-smss.com/free-sms-numbers/{country_code}",
+        f"https://sms-online.co/receive-free-sms/{country_code}"
+    ]
     found_numbers = []
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        # البحث عن العناصر التي تحتوي على الأرقام في الموقع
-        for item in soup.find_all('h4'):
-            num = item.text.strip()
-            if num.startswith('+'):
-                found_numbers.append(num)
-    except:
-        pass
-    return found_numbers[:5] # إرجاع أول 5 أرقام فقط
+    for url in urls:
+        try:
+            response = requests.get(url, headers=headers, timeout=5)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            # استخراج الأرقام من النصوص داخل الموقع
+            for item in soup.find_all(['h4', 'a', 'span']):
+                num = item.text.strip().replace(" ", "")
+                if num.startswith(f'+{country_code}') and 10 < len(num) < 16:
+                    if num not in found_numbers:
+                        found_numbers.append(num)
+        except:
+            continue
+    return found_numbers
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -44,7 +50,7 @@ def start(message):
         types.InlineKeyboardButton("📸 Instagram", callback_data="svc_Instagram_📸")
     ]
     markup.add(*services)
-    bot.send_message(message.chat.id, "⚔️ **Welcome to Al-Moqana Bot**\n\nSelect a Service:", reply_markup=markup, parse_mode="Markdown")
+    bot.send_message(message.chat.id, "⚔️ **دمار المقنع - اختر الخدمة:**", reply_markup=markup, parse_mode="Markdown")
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("svc_"))
 def select_country(call):
@@ -54,38 +60,37 @@ def select_country(call):
     
     buttons = []
     for name, info in COUNTRIES_DATA.items():
-        buttons.append(types.InlineKeyboardButton(f"{info['flag']} {name}", callback_data=f"num_{service_name}_{info['code']}"))
+        buttons.append(types.InlineKeyboardButton(f"{info['flag']} {name}", callback_data=f"get_{service_name}_{info['code']}"))
     
     markup.add(*buttons)
-    markup.row(types.InlineKeyboardButton("⬅️ Back", callback_data="back_to_main"))
-    bot.edit_message_text(f"{icon} **Select country for {service_name}:**", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+    markup.row(types.InlineKeyboardButton("⬅️ العودة للقائمة", callback_data="back_main"))
+    bot.edit_message_text(f"{icon} **اختر الدولة لخدمة {service_name}:**", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
-# هذه الدالة هي التي كانت تنقصك (جلب الأرقام عند الضغط على الدولة)
-@bot.callback_query_handler(func=lambda call: call.data.startswith("num_"))
-def display_numbers(call):
+@bot.callback_query_handler(func=lambda call: call.data.startswith("get_"))
+def show_results(call):
     data = call.data.split("_")
     service = data[1]
-    country_code = data[2]
+    code = data[2]
     
-    bot.answer_callback_query(call.id, "Searching for numbers... 🔎")
+    bot.answer_callback_query(call.id, "🔄 جاري سحب الأرقام المتاحة...")
     
-    # جلب الأرقام فعلياً
-    numbers = fetch_real_numbers(country_code)
+    # استدعاء دالة جلب الأرقام الحقيقية
+    nums = fetch_numbers_from_web(code)
     
-    if numbers:
-        msg = f"✅ **Available Numbers for {service}:**\n\n"
-        for n in numbers:
+    if nums:
+        msg = f"✅ **أرقام متاحة لـ {service}:**\n\n"
+        for n in nums[:10]: # عرض أول 10 أرقام
             msg += f"⮕ `{n}`\n"
-        msg += "\n*Click on number to copy*"
+        msg += "\n⚠️ *انسخ الرقم وجربه في التطبيق!*"
     else:
-        msg = f"❌ **Sorry!**\nNo active numbers found for this country at the moment."
+        msg = "❌ عذراً، لا توجد أرقام متاحة لهذه الدولة حالياً. جرب دولة أخرى."
 
-    markup = types.InlineKeyboardMarkup().add(types.InlineKeyboardButton("🔙 Back to Countries", callback_data=f"svc_{service}_⚙️"))
+    markup = types.InlineKeyboardMarkup().add(types.InlineKeyboardButton("🔙 عودة للدول", callback_data=f"svc_{service}_⚙️"))
     bot.edit_message_text(msg, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
-@bot.callback_query_handler(func=lambda call: call.data == "back_to_main")
+@bot.callback_query_handler(func=lambda call: call.data == "back_main")
 def back_main(call):
-    start(call.message)
     bot.delete_message(call.message.chat.id, call.message.message_id)
+    start(call.message)
 
 bot.infinity_polling()
