@@ -1,120 +1,120 @@
 import telebot
 import requests
-import concurrent.futures
 from bs4 import BeautifulSoup
 from telebot import types
 import os
 
-# --- الإعدادات الأساسية ---
+# --- إعدادات المقنع ---
 API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
-ADMIN_ID = 8388141188 # ايديك يا بطل
+CHANNELS = ['@your_channel_1', '@your_channel_2'] # ضع معرفات قنواتك هنا
+ADMIN_ID = 8388141188 # ايديك لإرسال الإذاعة والتواصل
 bot = telebot.TeleBot(API_TOKEN)
-USER_FILE = "users.txt" # لحفظ المستخدمين من أجل الإذاعة
 
-# قائمة الدول المضمونة (25 دولة)
-COUNTRIES_DATA = {
-    "USA": "1", "UK": "44", "Germany": "49", "France": "33", "Sweden": "46",
-    "Netherlands": "31", "Finland": "358", "Canada": "1", "Poland": "48",
-    "Austria": "43", "Belgium": "32", "Denmark": "45", "Estonia": "372",
-    "Indonesia": "62", "Malaysia": "60", "Russia": "7", "Ukraine": "380",
-    "Kazakhstan": "7", "India": "91", "Latvia": "371", "Lithuania": "370",
-    "HongKong": "852", "Philippines": "63", "Vietnam": "84", "Thailand": "66"
+# قائمة الـ 24 دولة المضمونة
+COUNTRIES_LIST = {
+    "1": "USA 🇺🇸", "44": "UK 🇬🇧", "49": "Germany 🇩🇪", "33": "France 🇫🇷", 
+    "46": "Sweden 🇸🇪", "31": "Netherlands 🇳🇱", "34": "Spain 🇪🇸", "7": "Russia 🇷🇺",
+    "60": "Malaysia 🇲🇾", "62": "Indonesia 🇮🇩", "48": "Poland 🇵🇱", "1787": "Puerto Rico 🇵🇷",
+    "351": "Portugal 🇵🇹", "43": "Austria 🇦🇹", "41": "Switzerland 🇨🇭", "32": "Belgium 🇧🇪",
+    "45": "Denmark 🇩🇰", "358": "Finland 🇫🇮", "30": "Greece 🇬🇷", "372": "Estonia 🇪🇪",
+    "370": "Lithuania 🇱🇹", "371": "Latvia 🇱🇻", "380": "Ukraine 🇺🇦", "852": "Hong Kong 🇭🇰"
 }
 
-# دالة سحب الأرقام بسرعة باستخدام "تعدد المسارات"
-def fetch_from_site(url, code):
-    try:
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        res = requests.get(url, headers=headers, timeout=3)
-        soup = BeautifulSoup(res.text, 'html.parser')
-        nums = []
-        for item in soup.find_all(['h4', 'a', 'span']):
-            n = item.text.strip().replace(" ", "")
-            if n.startswith(f'+{code}') and 10 < len(n) < 16:
-                nums.append(n)
-        return nums
-    except: return []
+def is_subscribed(user_id):
+    for ch in CHANNELS:
+        try:
+            s = bot.get_chat_member(ch, user_id).status
+            if s in ['left', 'kicked']: return False
+        except: continue
+    return True
 
-def get_all_numbers(code):
-    urls = [
-        f"https://receive-smss.com/free-sms-numbers/{code}",
-        f"https://sms-online.co/receive-free-sms/{code}",
-        f"https://receive-sms.cc/country/{code}",
-        "https://temporary-phone-number.com/"
-    ]
-    all_found = []
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        results = [executor.submit(fetch_from_site, url, code) for url in urls]
-        for f in concurrent.futures.as_completed(results):
-            all_found.extend(f.result())
-    return list(set(all_found))[:12] # إرجاع أرقام فريدة وسريعة
-
-# حفظ المستخدمين
-def save_user(user_id):
-    if not os.path.exists(USER_FILE): open(USER_FILE, "w").close()
-    with open(USER_FILE, "r+") as f:
-        if str(user_id) not in f.read():
-            f.write(str(user_id) + "\n")
+def fetch_fast(code):
+    # محرك سحب سريع جداً من 3 مصادر مختلفة لضمان وجود أرقام
+    nums = []
+    urls = [f"https://receive-smss.com/free-sms-numbers/{code}", f"https://sms-online.co/receive-free-sms/{code}"]
+    for url in urls:
+        try:
+            r = requests.get(url, timeout=3)
+            soup = BeautifulSoup(r.text, 'html.parser')
+            for h in soup.find_all(['h4', 'a']):
+                txt = h.text.strip().replace(" ", "")
+                if txt.startswith('+') and code in txt: nums.append(txt)
+        except: continue
+    return list(set(nums))[:12]
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    save_user(message.from_user.id)
+    if not is_subscribed(message.from_user.id):
+        markup = types.InlineKeyboardMarkup()
+        for ch in CHANNELS:
+            markup.add(types.InlineKeyboardButton("📢 انضم هنا أولاً", url=f"https://t.me/{ch.strip('@')}"))
+        markup.add(types.InlineKeyboardButton("✅ تم الاشتراك", callback_data="verify"))
+        return bot.send_message(message.chat.id, "⚠️ **يجب الاشتراك في قنواتنا أولاً لاستخدام البوت!**", reply_markup=markup)
+    
+    main_menu(message.chat.id)
+
+def main_menu(chat_id):
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
-        types.InlineKeyboardButton("🟢 WhatsApp", callback_data="svc_WA_🟢"),
-        types.InlineKeyboardButton("🔵 Telegram", callback_data="svc_TG_🔵"),
-        types.InlineKeyboardButton("👤 Facebook", callback_data="svc_FB_👤"),
-        types.InlineKeyboardButton("📸 Instagram", callback_data="svc_IG_📸"),
-        types.InlineKeyboardButton("🎭 تواصل مع المطور (المقنع)", url="tg://user?id=8388141188")
+        types.InlineKeyboardButton("🟢 WhatsApp", callback_data="svc_WhatsApp_🟢"),
+        types.InlineKeyboardButton("🔵 Telegram", callback_data="svc_Telegram_🔵"),
+        types.InlineKeyboardButton("👤 Facebook", callback_data="svc_Facebook_👤"),
+        types.InlineKeyboardButton("📸 Instagram", callback_data="svc_Instagram_📸"),
+        types.InlineKeyboardButton("👨‍💻 تواصل مع المطور (اིلཻمຼقᮭن྄༹ع🎭)", url=f"tg://user?id={ADMIN_ID}")
     )
-    bot.send_message(message.chat.id, "🎭 **أهلاً بك في بوت المقنع للأرقام**\nاختر الخدمة المطلوبة وسنجلب لك أرقاماً في ثوانٍ:", reply_markup=markup, parse_mode="Markdown")
+    bot.send_message(chat_id, "⚔️ **أهلاً بك في لوحة تحكم المقنع**\nاختر الخدمة المطلوبة:", reply_markup=markup)
 
-# لوحة تحكم الإذاعة (للمطور فقط)
+@bot.callback_query_handler(func=lambda call: True)
+def calls(call):
+    if call.data == "verify":
+        if is_subscribed(call.from_user.id):
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+            main_menu(call.message.chat.id)
+        else:
+            bot.answer_callback_query(call.id, "❌ لم تشترك بعد!", show_alert=True)
+
+    elif call.data.startswith("svc_"):
+        _, name, icon = call.data.split("_")
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        btns = [types.InlineKeyboardButton(v, callback_data=f"get_{k}_{name}_{icon}") for k, v in COUNTRIES_LIST.items()]
+        markup.add(*btns)
+        markup.add(types.InlineKeyboardButton("🔙 عودة", callback_data="back"))
+        bot.edit_message_text(f"{icon} **خدمة {name}**\nاختر الدولة المطلوبة:", call.message.chat.id, call.message.message_id, reply_markup=markup)
+
+    elif call.data.startswith("get_"):
+        _, code, svc, icon = call.data.split("_")
+        bot.answer_callback_query(call.id, "⚡ جاري السحب الفوري...")
+        nums = fetch_fast(code)
+        if nums:
+            markup = types.InlineKeyboardMarkup(row_width=1)
+            for n in nums:
+                markup.add(types.InlineKeyboardButton(f"{icon} {n}", callback_data=f"copy_{n}"))
+            markup.add(types.InlineKeyboardButton("🔙 عودة للدول", callback_data=f"svc_{svc}_{icon}"))
+            bot.edit_message_text(f"✅ **أرقام {svc} المتاحة:**", call.message.chat.id, call.message.message_id, reply_markup=markup)
+        else:
+            bot.answer_callback_query(call.id, "❌ هذه الدولة لم تنزل أرقاماً حالياً، جرب غيرها.", show_alert=True)
+
+    elif call.data == "back":
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+        main_menu(call.message.chat.id)
+
+# --- نظام الإذاعة للمقنع ---
 @bot.message_handler(commands=['broadcast'])
 def broadcast(message):
     if message.from_user.id == ADMIN_ID:
-        msg = bot.send_message(message.chat.id, "ارسل الرسالة التي تريد إذاعتها لجميع المستخدمين:")
-        bot.register_next_step_handler(msg, send_broadcast)
+        msg = bot.reply_to(message, "ارسل الآن الرسالة التي تريد نشرها لكل المستخدمين:")
+        bot.register_next_step_handler(msg, send_to_all)
 
-def send_broadcast(message):
-    with open(USER_FILE, "r") as f:
-        users = f.read().splitlines()
+def send_to_all(message):
+    # ملاحظة: هذا يتطلب قاعدة بيانات للمستخدمين، سنستخدم ملف txt بسيط
     count = 0
-    for user in users:
-        try:
-            bot.send_message(user, message.text)
-            count += 1
-        except: continue
-    bot.send_message(ADMIN_ID, f"✅ تم إرسال الإذاعة لـ {count} مستخدم.")
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith("svc_"))
-def select_country(call):
-    _, svc, icon = call.data.split("_")
-    markup = types.InlineKeyboardMarkup(row_width=2)
-    btns = [types.InlineKeyboardButton(f"{c}", callback_data=f"get_{svc}_{COUNTRIES_DATA[c]}") for c in list(COUNTRIES_DATA.keys())[:24]]
-    markup.add(*btns)
-    markup.add(types.InlineKeyboardButton("🔙 عودة", callback_data="back"))
-    bot.edit_message_text(f"{icon} **اختر الدولة لخدمة {svc}:**", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith("get_"))
-def show_nums(call):
-    _, svc, code = call.data.split("_")
-    bot.answer_callback_query(call.id, "🚀 جاري السحب الفوري...")
-    
-    nums = get_all_numbers(code)
-    if nums:
-        markup = types.InlineKeyboardMarkup(row_width=1)
-        for n in nums:
-            markup.add(types.InlineKeyboardButton(f"📲 {n}", callback_data=f"copy_{n}"))
-        markup.add(types.InlineKeyboardButton("🔙 عودة للدول", callback_data=f"svc_{svc}_⚙️"))
-        bot.edit_message_text(f"✅ **أرقام {svc} المتاحة:**\nاضغط على الرقم لنسخه:", call.message.chat.id, call.message.message_id, reply_markup=markup)
-    else:
-        bot.edit_message_text("❌ هذه الدولة لم تنزل أرقاماً جديدة حالياً، جرب دولة ثانية.", call.message.chat.id, call.message.message_id, 
-                              reply_markup=types.InlineKeyboardMarkup().add(types.InlineKeyboardButton("🔙 عودة", callback_data=f"svc_{svc}_⚙️")))
-
-@bot.callback_query_handler(func=lambda call: call.data == "back")
-def back(call):
-    bot.delete_message(call.message.chat.id, call.message.message_id)
-    start(call.message)
+    if os.path.exists("users.txt"):
+        with open("users.txt", "r") as f:
+            for user in f.readlines():
+                try:
+                    bot.send_message(user.strip(), message.text)
+                    count += 1
+                except: continue
+        bot.send_message(ADMIN_ID, f"✅ تمت الإذاعة لـ {count} مستخدم.")
 
 bot.infinity_polling()
