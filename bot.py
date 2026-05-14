@@ -1,75 +1,90 @@
 import telebot
-import cloudscraper
+import requests
 from bs4 import BeautifulSoup
 from telebot import types
 
-# توكن البوت الخاص بك
+# توكن البوت
 API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
 bot = telebot.TeleBot(API_TOKEN)
 
-# نستخدم scraper لتجاوز حماية المواقع
-scraper = cloudscraper.create_scraper()
-
-COUNTRIES = {
-    "49": "Germany 🇩🇪",
-    "1": "USA 🇺🇸",
-    "44": "UK 🇬🇧",
-    "33": "France 🇫🇷",
-    "62": "Indonesia 🇮🇩",
-    "60": "Malaysia 🇲🇾"
-}
-
-def get_numbers(country_code):
-    print(f"--- جاري البحث عن أرقام للكود: {country_code} ---")
+# دالة سحب الأرقام
+def fetch_numbers(country_code):
+    headers = {'User-Agent': 'Mozilla/5.0'}
     url = f"https://receive-smss.com/free-sms-numbers/{country_code}"
+    nums = []
     try:
-        response = scraper.get(url, timeout=15)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # استخراج الأرقام من البطاقات (التاجات الحقيقية للموقع)
-        numbers = []
-        for card in soup.select('h4'): 
-            num = card.text.strip()
-            if num.startswith('+'):
-                numbers.append(num)
-        
-        print(f"تم العثور على: {len(numbers)} رقم")
-        return numbers[:8]
-    except Exception as e:
-        print(f"خطأ أثناء السحب: {e}")
-        return []
+        res = requests.get(url, headers=headers, timeout=10)
+        soup = BeautifulSoup(res.text, 'html.parser')
+        for item in soup.find_all('h4'):
+            n = item.text.strip()
+            if n.startswith('+'):
+                nums.append(n)
+    except: pass
+    return nums[:10]
 
 @bot.message_handler(commands=['start'])
-def send_welcome(message):
+def start(message):
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    # القائمة الرئيسية للخدمات
+    markup.add(
+        types.InlineKeyboardButton("👤 Facebook", callback_data="set_Facebook"),
+        types.InlineKeyboardButton("🟢 WhatsApp", callback_data="set_WhatsApp"),
+        types.InlineKeyboardButton("✈️ Telegram", callback_data="set_Telegram"),
+        types.InlineKeyboardButton("📸 Instagram", callback_data="set_Instagram")
+    )
+    bot.send_message(message.chat.id, "⚔️ **Welcome to SMS Panel**\nSelect Service:", reply_markup=markup, parse_mode="Markdown")
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("set_"))
+def select_country(call):
+    service = call.data.split("_")[1]
     markup = types.InlineKeyboardMarkup(row_width=2)
-    btns = [types.InlineKeyboardButton(name, callback_data=f"get_{code}") for code, name in COUNTRIES.items()]
+    # قائمة الدول المتاحة
+    countries = [
+        ("Germany 🇩🇪", "49"), ("USA 🇺🇸", "1"), 
+        ("UK 🇬🇧", "44"), ("France 🇫🇷", "33"),
+        ("Sweden 🇸🇪", "46"), ("Netherlands 🇳🇱", "31")
+    ]
+    btns = [types.InlineKeyboardButton(name, callback_data=f"get_{service}_{code}") for name, code in countries]
     markup.add(*btns)
-    bot.send_message(message.chat.id, "⚔️ **بوت دمار المقنع للأرقام**\n\nاختر الدولة لجلب الأرقام المتاحة حالياً:", reply_markup=markup, parse_mode="Markdown")
+    markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="back_home"))
+    bot.edit_message_text(f"📍 **Service:** {service}\nSelect Country:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith('get_'))
-def handle_get_numbers(call):
-    country_code = call.data.split('_')[1]
-    country_name = COUNTRIES.get(country_code, "الدولة المختارة")
+@bot.callback_query_handler(func=lambda call: call.data.startswith("get_"))
+def show_numbers_as_buttons(call):
+    _, service, code = call.data.split("_")
+    bot.answer_callback_query(call.id, "🔄 Searching...")
     
-    bot.answer_callback_query(call.id, "🔄 انتظر ثواني.. جاري السحب")
-    bot.edit_message_text(f"🔎 جاري سحب أرقام من {country_name}...", call.message.chat.id, call.message.message_id)
+    # تحديد الأيقونة بناءً على الخدمة المختارة
+    icons = {
+        "Facebook": "👤",
+        "WhatsApp": "🟢",
+        "Telegram": "✈️",
+        "Instagram": "📸"
+    }
+    current_icon = icons.get(service, "🔹")
     
-    nums = get_numbers(country_code)
+    numbers = fetch_numbers(code)
     
-    if nums:
-        result_text = f"✅ **الأرقام المتاحة في {country_name}:**\n\n"
-        for n in nums:
-            result_text += f"⮕ `{n}`\n"
-        result_text += "\n⚠️ *اضغط على الرقم لنسخه*"
+    if numbers:
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        # إنشاء الأزرار مع أيقونة الخدمة لكل رقم
+        for n in numbers:
+            # هنا يتم دمج الأيقونة مع الرقم في الزر
+            markup.add(types.InlineKeyboardButton(f"{current_icon} {n}", callback_data=f"copy_{n}"))
+        
+        markup.add(types.InlineKeyboardButton("🔙 Back to Countries", callback_data=f"set_{service}"))
+        bot.edit_message_text(f"✅ **{service} Numbers:**\nSelect a number to use:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
     else:
-        result_text = f"❌ لم أجد أرقاماً نشطة حالياً لـ {country_name}.\nيرجى المحاولة مرة أخرى أو اختيار دولة أخرى."
+        bot.answer_callback_query(call.id, "❌ No numbers found", show_alert=True)
 
-    back_markup = types.InlineKeyboardMarkup().add(types.InlineKeyboardButton("🔙 عودة للقائمة", callback_data="back_home"))
-    bot.edit_message_text(result_text, call.message.chat.id, call.message.message_id, reply_markup=back_markup, parse_mode="Markdown")
+@bot.callback_query_handler(func=lambda call: call.data.startswith("copy_"))
+def handle_copy(call):
+    num = call.data.split("_")[1]
+    bot.answer_callback_query(call.id, f"Number selected: {num}\nCopy it now!", show_alert=True)
 
 @bot.callback_query_handler(func=lambda call: call.data == "back_home")
 def back_home(call):
-    send_welcome(call.message)
     bot.delete_message(call.message.chat.id, call.message.message_id)
+    start(call.message)
 
 bot.infinity_polling()
