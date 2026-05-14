@@ -6,18 +6,18 @@ import os
 
 # إعدادات البوت والقنوات
 API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
-ADMIN_ID = 8388141188  # رقم هويتك يا عواد (تم التعديل)
+ADMIN_ID = 8388141188  # معرفك الخاص يا عواد
 bot = telebot.TeleBot(API_TOKEN)
+
+# قائمة القنوات المحدثة بناءً على صورك
 CHANNELS = ["@v_o_lti", "@jzbnznx", "@bsbsb8_djbd"]
 USER_FILE = "users.txt"
 
-# قائمة الـ 10 مواقع العالمية
+# مصادر الأرقام
 SOURCES = [
     "https://receive-smss.com/", "https://sms-online.co/receive-free-sms",
     "https://receive-sms.cc/", "https://www.receivesms.co/",
-    "https://smsreceivefree.com/", "https://getfreesmsnumber.com/",
-    "https://temp-number.com/", "https://sms-receive.net/",
-    "https://www.sms-arrival.com/", "https://fakesms.online/"
+    "https://smsreceivefree.com/", "https://getfreesmsnumber.com/"
 ]
 
 def save_user(user_id):
@@ -38,19 +38,19 @@ def is_subscribed(user_id):
         return True
     except: return False
 
-def fetch_mega_numbers():
+def fetch_numbers():
     all_nums = []
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    headers = {'User-Agent': 'Mozilla/5.0'}
     for url in SOURCES:
         try:
             res = requests.get(url, headers=headers, timeout=5)
             if res.status_code == 200:
                 soup = BeautifulSoup(res.text, 'html.parser')
-                for item in soup.find_all(['a', 'span', 'h4', 'p', 'td']):
-                    txt = item.text.strip().replace(" ", "").replace("-", "")
+                for item in soup.find_all(['a', 'span', 'td']):
+                    txt = item.text.strip().replace(" ", "")
                     if txt.startswith('+') and 10 < len(txt) < 16:
                         if txt not in all_nums: all_nums.append(txt)
-            if len(all_nums) >= 30: break
+            if len(all_nums) >= 20: break
         except: continue
     return all_nums
 
@@ -67,20 +67,20 @@ def start(message):
             types.InlineKeyboardButton("⚫ TikTok", callback_data="get_nums"),
             types.InlineKeyboardButton("🟣 Instagram", callback_data="get_nums")
         )
-        bot.send_message(message.chat.id, "⚔️ **دمار المقنع - اختر خدمتك:**", reply_markup=markup, parse_mode="Markdown")
+        bot.send_message(message.chat.id, "⚔️ **دمار المقنع جاهز!**\nاختر الخدمة المطلوبة:", reply_markup=markup, parse_mode="Markdown")
     else:
         markup = types.InlineKeyboardMarkup(row_width=1)
-        for ch in CHANNELS:
-            markup.add(types.InlineKeyboardButton(f"📢 انضم للقناة {ch}", url=f"https://t.me/{ch.replace('@','')}"))
+        for i, ch in enumerate(CHANNELS, 1):
+            markup.add(types.InlineKeyboardButton(f"📢 انضم للقناة {i}", url=f"https://t.me/{ch.replace('@','')}"))
         markup.add(types.InlineKeyboardButton("✅ تحقق من الاشتراك", callback_data="verify_it"))
-        bot.send_message(message.chat.id, "⚠️ **يجب الاشتراك في القنوات أولاً:**", reply_markup=markup, parse_mode="Markdown")
+        bot.send_message(message.chat.id, "⚠️ **عذراً! يجب الاشتراك في القنوات أولاً لاستخدام البوت:**", reply_markup=markup, parse_mode="Markdown")
 
 @bot.message_handler(commands=['bc'])
 def broadcast(message):
     if message.from_user.id == ADMIN_ID:
         text = message.text.replace("/bc", "").strip()
         if not text:
-            bot.send_message(message.chat.id, "❌ اكتب الرسالة بعد الأمر.")
+            bot.send_message(message.chat.id, "❌ يرجى كتابة الرسالة بعد الأمر.")
             return
         if os.path.exists(USER_FILE):
             with open(USER_FILE, "r") as f:
@@ -91,23 +91,20 @@ def broadcast(message):
                     bot.send_message(user, text)
                     count += 1
                 except: continue
-            bot.send_message(message.chat.id, f"✅ تم الإرسال إلى {count} مستخدم.")
+            bot.send_message(message.chat.id, f"✅ تم إرسال رسالتك إلى {count} مشترك.")
     else:
-        bot.send_message(message.chat.id, "⚠️ هذا الأمر للمطور فقط.")
+        bot.send_message(message.chat.id, "⚠️ عذراً، هذا الأمر مخصص للمطور فقط.")
 
 @bot.callback_query_handler(func=lambda call: call.data == "get_nums")
 def handle_fetch(call):
-    bot.answer_callback_query(call.id, "🔄 جاري البحث...")
-    nums = fetch_mega_numbers()
+    bot.answer_callback_query(call.id, "🔄 جاري جلب الأرقام...")
+    nums = fetch_numbers()
     if nums:
-        msg = "📲 **الأرقام المتاحة:**\n\n" + "\n".join([f"`{n}`" for n in nums[:20]])
-        markup = types.InlineKeyboardMarkup().add(
-            types.InlineKeyboardButton("🔄 تحديث", callback_data="get_nums"),
-            types.InlineKeyboardButton("🔙 عودة", callback_data="back_start")
-        )
+        msg = "📲 **الأرقام المتاحة الآن:**\n\n" + "\n".join([f"`{n}`" for n in nums[:15]])
+        markup = types.InlineKeyboardMarkup().add(types.InlineKeyboardButton("🔙 عودة", callback_data="back_start"))
         bot.edit_message_text(msg, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
     else:
-        bot.edit_message_text("❌ لم يتم العثور على أرقام حالياً.", call.message.chat.id, call.message.message_id, reply_markup=types.InlineKeyboardMarkup().add(types.InlineKeyboardButton("🔄 محاولة أخرى", callback_data="get_nums")))
+        bot.edit_message_text("❌ لم أتمكن من جلب أرقام حالياً، جرب ثانية.", call.message.chat.id, call.message.message_id, reply_markup=types.InlineKeyboardMarkup().add(types.InlineKeyboardButton("🔄 محاولة أخرى", callback_data="get_nums")))
 
 @bot.callback_query_handler(func=lambda call: call.data == "back_start")
 def back_start(call):
@@ -120,6 +117,6 @@ def verify_it(call):
         bot.delete_message(call.message.chat.id, call.message.message_id)
         start(call.message)
     else:
-        bot.answer_callback_query(call.id, "❌ اشترك في القنوات أولاً!", show_alert=True)
+        bot.answer_callback_query(call.id, "❌ لم تشترك في جميع القنوات بعد!", show_alert=True)
 
 bot.infinity_polling()
