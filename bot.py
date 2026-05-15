@@ -14,7 +14,7 @@ def home():
     return "The Masked Bot is Alive! 🎭"
 
 def run():
-    # Render يستخدم المنفذ 10000 غالباً، Flask سيتحسسه آلياً
+    # Render يطلب تشغيل السيرفر على منفذ معين يتحسسه الكود آلياً
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
 
@@ -30,7 +30,7 @@ bot = telebot.TeleBot(API_TOKEN)
 
 COUNTRIES_LIST = {
     "1": "USA 🇺🇸", "44": "UK 🇬🇧", "49": "Germany 🇩🇪", "33": "France 🇫🇷", 
-    "46": "Sweden 🇸🇪", "31": "Netherlands 🇳🇱", "34": "Spain 🇪🇸", "7": "Russia 🇷🇺",
+    "46": "Sweden 🇸🇪", "31": "Netherlands 🇳🇱", "34": "Spain 🇪🇸", "7": "Russia 🇺🇺",
     "60": "Malaysia 🇲🇾", "62": "Indonesia 🇮🇩", "48": "Poland 🇵🇱", "1787": "Puerto Rico 🇵🇷",
     "351": "Portugal 🇵🇹", "43": "Austria 🇦🇹", "41": "Switzerland 🇨🇭", "32": "Belgium 🇧🇪",
     "45": "Denmark 🇩🇰", "358": "Finland 🇫🇮", "30": "Greece 🇬🇷", "372": "Estonia 🇪🇪",
@@ -156,6 +156,6 @@ if __name__ == "__main__":
     keep_alive() 
     print("🚀 دمار المقنع مستيقظ الآن 24/7!")
     try:
-        bot.infinity_polling(timeout=10, long_polling_timeout=5)
+        bot.infinity_polling(timeout=20, long_polling_timeout=10)
     except Exception as e:
         print(f"Error: {e}")
