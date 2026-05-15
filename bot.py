@@ -6,7 +6,8 @@ import os
 from flask import Flask
 from threading import Thread
 
-# --- 1. نظام السيرفر الوهمي (Keep Alive) ---
+# --- 1. نظام منع النوم (Keep Alive) ---
+# هذا الجزء يفتح "نافذة" للسيرفر لكي لا يغلق البوت أبداً
 app = Flask('')
 
 @app.route('/')
@@ -14,7 +15,7 @@ def home():
     return "The Masked Bot is Alive! 🎭"
 
 def run():
-    # المنفذ 8080 هو الافتراضي لمعظم خدمات الاستضافة
+    # Render يطلب تشغيل السيرفر على منفذ معين، هنا استخدمنا 8080
     app.run(host='0.0.0.0', port=8080)
 
 def keep_alive():
@@ -33,7 +34,7 @@ COUNTRIES_LIST = {
     "60": "Malaysia 🇲🇾", "62": "Indonesia 🇮🇩", "48": "Poland 🇵🇱", "1787": "Puerto Rico 🇵🇷",
     "351": "Portugal 🇵🇹", "43": "Austria 🇦🇹", "41": "Switzerland 🇨🇭", "32": "Belgium 🇧🇪",
     "45": "Denmark 🇩🇰", "358": "Finland 🇫🇮", "30": "Greece 🇬🇷", "372": "Estonia 🇪🇪",
-    "370": "Lithuania 🇱🇹", "371": "Latvia LV", "380": "Ukraine 🇺🇦", "852": "Hong Kong 🇭🇰"
+    "370": "Lithuania 🇱🇹", "371": "Latvia 🇱🇻", "380": "Ukraine 🇺🇦", "852": "Hong Kong 🇭🇰"
 }
 
 # --- 3. الدوال المساعدة ---
@@ -62,7 +63,7 @@ def fetch_all_sources(code):
     ]
     for url in sources:
         try:
-            r = requests.get(url, timeout=3)
+            r = requests.get(url, timeout=4)
             soup = BeautifulSoup(r.text, 'html.parser')
             for h in soup.find_all(['h4', 'a', 'span']):
                 txt = h.text.strip().replace(" ", "")
@@ -90,7 +91,7 @@ def start(message):
         for ch in CHANNELS:
             markup.add(types.InlineKeyboardButton("📢 انضم للقناة أولاً", url=f"https://t.me/{ch.strip('@')}"))
         markup.add(types.InlineKeyboardButton("✅ تم الاشتراك، دخول البوت", callback_data="verify"))
-        return bot.send_message(message.chat.id, "⚠️ **يجب الاشتراك أولاً!**", reply_markup=markup)
+        return bot.send_message(message.chat.id, "⚠️ **عذراً! يجب الاشتراك في القناة أولاً.**", reply_markup=markup)
     show_main_menu(message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -100,28 +101,28 @@ def handle_queries(call):
             bot.delete_message(call.message.chat.id, call.message.message_id)
             show_main_menu(call.message.chat.id)
         else:
-            bot.answer_callback_query(call.id, "❌ لم تشترك بعد!", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ لم تشترك بعد يا بطل!", show_alert=True)
 
     elif call.data.startswith("svc_"):
         _, name, icon = call.data.split("_")
         markup = types.InlineKeyboardMarkup(row_width=2)
         btns = [types.InlineKeyboardButton(v, callback_data=f"get_{k}_{name}_{icon}") for k, v in COUNTRIES_LIST.items()]
         markup.add(*btns)
-        markup.add(types.InlineKeyboardButton("🔙 عودة", callback_data="back_home"))
-        bot.edit_message_text(f"{icon} **خدمة {name}**\nاختر الدولة:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+        markup.add(types.InlineKeyboardButton("🔙 عودة للقائمة الرئيسية", callback_data="back_home"))
+        bot.edit_message_text(f"{icon} **خدمة {name}**\nاختر الدولة المطلوبة:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data.startswith("get_"):
         _, code, svc, icon = call.data.split("_")
-        bot.answer_callback_query(call.id, "⚡ جاري السحب...")
+        bot.answer_callback_query(call.id, "⚡ جاري سحب الأرقام...")
         nums = fetch_all_sources(code)
         if nums:
             markup = types.InlineKeyboardMarkup(row_width=1)
             for n in nums:
                 markup.add(types.InlineKeyboardButton(f"{icon} {n}", callback_data=f"copy_{n}"))
-            markup.add(types.InlineKeyboardButton("🔙 عودة", callback_data=f"svc_{svc}_{icon}"))
+            markup.add(types.InlineKeyboardButton("🔙 عودة لقائمة الدول", callback_data=f"svc_{svc}_{icon}"))
             bot.edit_message_text(f"✅ **أرقام {svc} المتاحة:**", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
         else:
-            bot.answer_callback_query(call.id, "❌ لا توجد أرقام حالياً، جرب دولة أخرى.", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ هذه الدولة لم تنزل أرقاماً حالياً، جرب غيرها.", show_alert=True)
 
     elif call.data == "back_home":
         bot.delete_message(call.message.chat.id, call.message.message_id)
@@ -129,12 +130,12 @@ def handle_queries(call):
 
     elif call.data.startswith("copy_"):
         num = call.data.split("_")[1]
-        bot.answer_callback_query(call.id, f"تم اختيار: {num}", show_alert=True)
+        bot.answer_callback_query(call.id, f"تم اختيار الرقم: {num}\nانسخه الآن واستخدمه!", show_alert=True)
 
 @bot.message_handler(commands=['broadcast'])
 def broadcast(message):
     if message.from_user.id == ADMIN_ID:
-        msg = bot.reply_to(message, "أرسل رسالة الإذاعة:")
+        msg = bot.reply_to(message, "أرسل الرسالة التي تريد نشرها للجميع:")
         bot.register_next_step_handler(msg, send_to_all)
 
 def send_to_all(message):
@@ -143,10 +144,11 @@ def send_to_all(message):
             for user in f.readlines():
                 try: bot.send_message(user.strip(), message.text)
                 except: continue
-        bot.send_message(ADMIN_ID, "✅ تمت الإذاعة.")
+        bot.send_message(ADMIN_ID, "✅ تمت الإذاعة بنجاح.")
 
 # --- 5. التشغيل النهائي ---
 if __name__ == "__main__":
-    keep_alive() # تشغيل السيرفر المصغر لمنع النوم
-    print("🚀 البوت مستيقظ ويعمل 24/7!")
+    # تشغيل السيرفر المصغر في خيط (Thread) منفصل لكي لا يتوقف البوت
+    keep_alive() 
+    print("🚀 دمار المقنع مستيقظ الآن 24/7!")
     bot.infinity_polling()
