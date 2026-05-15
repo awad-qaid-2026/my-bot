@@ -3,33 +3,67 @@ import requests
 from bs4 import BeautifulSoup
 from telebot import types
 import os
+from flask import Flask
+from threading import Thread
 
-# --- إعدادات المقنع ---
+# --- نظام منع النوم (Keep Alive) ---
+app = Flask('')
+@app.route('/')
+def home():
+    return "Bot is Running 24/7!"
+
+def run():
+    app.run(host='0.0.0.0', port=8080)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+# --- إعدادات البوت ---
 API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
-CHANNELS = ['@v_o_lti'] # ضع قنواتك هنا
-ADMIN_ID = 8388141188 # ايديك للتواصل والإذاعة
+CHANNELS = ['@v_o_lti'] # قنوات الاشتراك الإجباري
+ADMIN_ID = 8388141188 # آيدي المطور (المقنع)
 bot = telebot.TeleBot(API_TOKEN)
 
-# دالة حفظ المستخدمين للإذاعة
+# قائمة الـ 24 دولة المضمونة
+COUNTRIES_LIST = {
+    "1": "USA 🇺🇸", "44": "UK 🇬🇧", "49": "Germany 🇩🇪", "33": "France 🇫🇷", 
+    "46": "Sweden 🇸🇪", "31": "Netherlands 🇳🇱", "34": "Spain 🇪🇸", "7": "Russia 🇷🇺",
+    "60": "Malaysia 🇲🇾", "62": "Indonesia 🇮🇩", "48": "Poland 🇵🇱", "1787": "Puerto Rico 🇵🇷",
+    "351": "Portugal 🇵🇹", "43": "Austria 🇦🇹", "41": "Switzerland 🇨🇭", "32": "Belgium 🇧🇪",
+    "45": "Denmark 🇩🇰", "358": "Finland 🇫🇮", "30": "Greece 🇬🇷", "372": "Estonia 🇪🇪",
+    "370": "Lithuania 🇱🇹", "371": "Latvia 🇱🇻", "380": "Ukraine 🇺🇦", "852": "Hong Kong 🇭🇰"
+}
+
+# حفظ المستخدمين للإذاعة
 def save_user(user_id):
     if not os.path.exists("users.txt"): open("users.txt", "w").close()
     with open("users.txt", "r+") as f:
-        if str(user_id) not in f.read():
+        data = f.read()
+        if str(user_id) not in data:
             f.write(f"{user_id}\n")
 
-# سحب سريع من 5 مصادر لضمان الأرقام
+# التحقق من الاشتراك
+def is_subscribed(user_id):
+    for ch in CHANNELS:
+        try:
+            status = bot.get_chat_member(ch, user_id).status
+            if status in ['left', 'kicked']: return False
+        except: continue
+    return True
+
+# سحب الأرقام السريع جداً من 5 مصادر
 def fetch_all_sources(code):
     nums = []
     sources = [
         f"https://receive-smss.com/free-sms-numbers/{code}",
         f"https://sms-online.co/receive-free-sms/{code}",
         f"https://receive-sms.cc/country/{code}",
-        f"https://www.receivesms.co/country/{code}",
-        f"https://smsreceivefree.com/country/{code}"
+        f"https://www.receivesms.co/country/{code}"
     ]
     for url in sources:
         try:
-            r = requests.get(url, timeout=4)
+            r = requests.get(url, timeout=3)
             soup = BeautifulSoup(r.text, 'html.parser')
             for h in soup.find_all(['h4', 'a', 'span']):
                 txt = h.text.strip().replace(" ", "")
@@ -43,21 +77,13 @@ def start(message):
     if not is_subscribed(message.from_user.id):
         markup = types.InlineKeyboardMarkup()
         for ch in CHANNELS:
-            markup.add(types.InlineKeyboardButton("📢 انضم هنا أولاً", url=f"https://t.me/{ch.strip('@')}"))
-        markup.add(types.InlineKeyboardButton("✅ تم الاشتراك", callback_data="verify"))
-        return bot.send_message(message.chat.id, "⚠️ **يجب الاشتراك في القنوات أولاً!**", reply_markup=markup)
+            markup.add(types.InlineKeyboardButton("📢 انضم للقناة أولاً", url=f"https://t.me/{ch.strip('@')}"))
+        markup.add(types.InlineKeyboardButton("✅ تم الاشتراك، دخول البوت", callback_data="verify"))
+        return bot.send_message(message.chat.id, "⚠️ **عذراً! يجب الاشتراك في قنواتنا أولاً لاستخدام البوت.**", reply_markup=markup, parse_mode="Markdown")
     
-    show_main(message.chat.id)
+    show_main_menu(message.chat.id)
 
-def is_subscribed(user_id):
-    for ch in CHANNELS:
-        try:
-            s = bot.get_chat_member(ch, user_id).status
-            if s in ['left', 'kicked']: return False
-        except: continue
-    return True
-
-def show_main(chat_id):
+def show_main_menu(chat_id):
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
         types.InlineKeyboardButton("🟢 WhatsApp", callback_data="svc_WhatsApp_🟢"),
@@ -66,55 +92,66 @@ def show_main(chat_id):
         types.InlineKeyboardButton("📸 Instagram", callback_data="svc_Instagram_📸"),
         types.InlineKeyboardButton("👨‍💻 المطور (اིلཻمຼقᮭن྄༹ع🎭)", url=f"tg://user?id={ADMIN_ID}")
     )
-    bot.send_message(chat_id, "⚔️ **لوحة المقنع للأرقام جاهزة**\nاختر الخدمة:", reply_markup=markup)
+    bot.send_message(chat_id, "⚔️ **أهلاً بك في بوت المقنع للأرقام**\nاختر الخدمة المطلوبة:", reply_markup=markup, parse_mode="Markdown")
 
 @bot.callback_query_handler(func=lambda call: True)
-def handle_calls(call):
+def handle_queries(call):
     if call.data == "verify":
         if is_subscribed(call.from_user.id):
             bot.delete_message(call.message.chat.id, call.message.message_id)
-            show_main(call.message.chat.id)
+            show_main_menu(call.message.chat.id)
         else:
-            bot.answer_callback_query(call.id, "❌ اشترك أولاً يا بطل!", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ لم تشترك في القناة بعد!", show_alert=True)
 
     elif call.data.startswith("svc_"):
         _, name, icon = call.data.split("_")
         markup = types.InlineKeyboardMarkup(row_width=2)
-        # أهم الدول المضمونة
-        codes = {"1": "USA 🇺🇸", "44": "UK 🇬🇧", "49": "Germany 🇩🇪", "33": "France 🇫🇷", "46": "Sweden 🇸🇪", "31": "Netherlands 🇳🇱"}
-        btns = [types.InlineKeyboardButton(v, callback_data=f"get_{k}_{name}_{icon}") for k, v in codes.items()]
+        btns = [types.InlineKeyboardButton(v, callback_data=f"get_{k}_{name}_{icon}") for k, v in COUNTRIES_LIST.items()]
         markup.add(*btns)
-        markup.add(types.InlineKeyboardButton("🔙 عودة", callback_data="back"))
-        bot.edit_message_text(f"{icon} اختر دولة لـ {name}:", call.message.chat.id, call.message.message_id, reply_markup=markup)
+        markup.add(types.InlineKeyboardButton("🔙 عودة", callback_data="back_home"))
+        bot.edit_message_text(f"{icon} **خدمة {name}**\nاختر الدولة المطلوبة:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data.startswith("get_"):
         _, code, svc, icon = call.data.split("_")
-        bot.answer_callback_query(call.id, "⚡ سحب سريع جداً...")
+        bot.answer_callback_query(call.id, "⚡ سحب فوري...")
         nums = fetch_all_sources(code)
         if nums:
             markup = types.InlineKeyboardMarkup(row_width=1)
             for n in nums:
                 markup.add(types.InlineKeyboardButton(f"{icon} {n}", callback_data=f"copy_{n}"))
-            markup.add(types.InlineKeyboardButton("🔙 عودة", callback_data=f"svc_{svc}_{icon}"))
-            bot.edit_message_text(f"✅ أرقام {svc} جاهزة:", call.message.chat.id, call.message.message_id, reply_markup=markup)
+            markup.add(types.InlineKeyboardButton("🔙 عودة للدول", callback_data=f"svc_{svc}_{icon}"))
+            bot.edit_message_text(f"✅ **أرقام {svc} المتاحة:**", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
         else:
-            bot.answer_callback_query(call.id, "❌ جرب دولة أخرى، هذه لا يوجد بها أرقام حالياً.", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ لم يتم العثور على أرقام جديدة حالياً، جرب دولة أخرى.", show_alert=True)
 
-    elif call.data == "back":
+    elif call.data == "back_home":
         bot.delete_message(call.message.chat.id, call.message.message_id)
-        show_main(call.message.chat.id)
+        show_main_menu(call.message.chat.id)
 
+    elif call.data.startswith("copy_"):
+        num = call.data.split("_")[1]
+        bot.answer_callback_query(call.id, f"تم اختيار الرقم: {num}\nانسخه الآن واستخدمه!", show_alert=True)
+
+# نظام الإذاعة
 @bot.message_handler(commands=['broadcast'])
 def broadcast(message):
     if message.from_user.id == ADMIN_ID:
-        msg = bot.reply_to(message, "اكتب الرسالة لنشرها للجميع:")
-        bot.register_next_step_handler(msg, do_broadcast)
+        msg = bot.reply_to(message, "ارسل الآن الرسالة التي تريد نشرها للجميع:")
+        bot.register_next_step_handler(msg, send_to_all)
 
-def do_broadcast(message):
-    with open("users.txt", "r") as f:
-        for user in f.readlines():
-            try: bot.send_message(user.strip(), message.text)
-            except: continue
-    bot.send_message(ADMIN_ID, "✅ تمت الإذاعة بنجاح!")
+def send_to_all(message):
+    count = 0
+    if os.path.exists("users.txt"):
+        with open("users.txt", "r") as f:
+            for user in f.readlines():
+                try:
+                    bot.send_message(user.strip(), message.text)
+                    count += 1
+                except: continue
+        bot.send_message(ADMIN_ID, f"✅ تمت الإذاعة لـ {count} مستخدم.")
 
-bot.infinity_polling()
+# التشغيل النهائي
+if __name__ == "__main__":
+    keep_alive() # يمنع Render من إغلاق البوت
+    print("🚀 البوت يعمل الآن بأقصى طاقة 24/7!")
+    bot.infinity_polling()
