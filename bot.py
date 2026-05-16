@@ -12,7 +12,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "The Masked Bot is Alive! 🎭"
+    return "The Masked Bot is Fully Active & Optimized! 🎭"
 
 def run():
     port = int(os.environ.get("PORT", 8080))
@@ -37,10 +37,8 @@ def keep_alive():
 # --- 2. إعدادات البوت والقنوات والمجموعات المحدثة مئة بالمئة ---
 API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
 
-# قائمة المعرفات الحقيقية للفحص البرامجي (تأكد أن البوت مشرف داخلها جميعاً)
 CHANNELS = ['@Awad_Numbers_Bot', '@jzbznznx', '@sn6hdbdn19dndw'] 
 
-# روابط الدعوة المنسقة للمستخدمين للضغط عليها والانضمام
 SUBSCRIPTION_LINKS = [
     {"name": "📢 قناة البوت الرسمية", "url": "https://t.me/Awad_Numbers_Bot"},
     {"name": "📢 قناة عبارات بشكل عام", "url": "https://t.me/jzbznznx"},
@@ -51,13 +49,16 @@ SUBSCRIPTION_LINKS = [
 ADMIN_ID = 8388141188 
 bot = telebot.TeleBot(API_TOKEN)
 
+# قاموس منع السبام (لحماية البوت من التجميد)
+user_last_action = {}
+
 COUNTRIES_LIST = {
     "1": "USA 🇺🇸", "44": "UK 🇬🇧", "49": "Germany 🇩🇪", "33": "France 🇫🇷", 
     "46": "Sweden 🇸🇪", "31": "Netherlands 🇳🇱", "34": "Spain 🇪🇸", "7": "Russia 🇷🇺",
     "60": "Malaysia 🇲🇾", "62": "Indonesia 🇮🇩", "48": "Poland 🇵🇱", "1787": "Puerto Rico 🇵🇷",
     "351": "Portugal 🇵🇹", "43": "Austria 🇦🇹", "41": "Switzerland 🇨🇭", "32": "Belgium 🇧🇪",
-    "45": "Denmark 🇩🇰", "358": "Finland 🇫🇮", "30": "Greece 🇬🇷", "372": "Estonia 🇪🇪",
-    "370": "Lithuania 🇱🇹", "371": "Latvia 🇱вів", "380": "Ukraine 🇺🇦", "852": "Hong Kong 👑"
+    "45": "Denmark 🇩🇰", "358": "Finland 👑", "30": "Greece 🇬🇷", "372": "Estonia 🇪🇪",
+    "370": "Lithuania 🇱🇹", "371": "Latvia 🇱🇻", "380": "Ukraine 🇺🇦", "852": "Hong Kong 👑"
 }
 
 # --- 3. الدوال المساعدة ---
@@ -80,6 +81,21 @@ def is_subscribed(user_id):
         except: continue
     return True
 
+def check_spam(user_id):
+    """منع الضغط العشوائي والمتكرر لحماية البوت من الحظر"""
+    current_time = time.time()
+    if user_id in user_last_action:
+        last_time, count = user_last_action[user_id]
+        if current_time - last_time < 2:  # إذا ضغط مرتين في أقل من ثانيتين
+            if count >= 3:
+                return True
+            user_last_action[user_id] = (last_time, count + 1)
+        else:
+            user_last_action[user_id] = (current_time, 1)
+    else:
+        user_last_action[user_id] = (current_time, 1)
+    return False
+
 def fetch_all_sources(code):
     nums = []
     sources = [
@@ -100,25 +116,34 @@ def fetch_all_sources(code):
 
 # --- 4. معالجة الرسائل والقوائم ---
 
-# دالة مسح إشعارات الدخول والخروج التلقائية من الجروب ليبقى نظيفاً ومحمياً
 @bot.message_handler(content_types=['new_chat_members', 'left_chat_member'])
 def clean_service_messages(message):
     try:
         bot.delete_message(message.chat.id, message.message_id)
-        print(f"🗑️ تم حذف إشعار الخدمة بنجاح من الجروب {message.chat.id}")
     except Exception as e:
-        print(f"❌ خطأ أثناء حذف رسالة الخدمة (تأكد من رفع البوت كمشرف): {e}")
+        print(f"خطأ حذف الإشعار: {e}")
 
 def show_main_menu(chat_id):
-    markup = types.InlineKeyboardMarkup(row_width=1)
+    markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
         types.InlineKeyboardButton("🟢 WhatsApp", callback_data="svc_WhatsApp_🟢"),
-        types.InlineKeyboardButton("🔵 Telegram", callback_data="svc_Telegram_🔵"),
-        types.InlineKeyboardButton("👤 Facebook", callback_data="svc_Facebook_👤"),
-        types.InlineKeyboardButton("📸 Instagram", callback_data="svc_Instagram_📸"),
-        types.InlineKeyboardButton("👨‍💻 تواصل مع مطور البوت", url=f"https://t.me/awad3210")
+        types.InlineKeyboardButton("🔵 Telegram", callback_data="svc_Telegram_🔵")
     )
-    bot.send_message(chat_id, "⚔️ **أهلاً بك في لوحة تحكم المقنع**\nاختر الخدمة المطلوبة:", reply_markup=markup, parse_mode="Markdown")
+    markup.add(
+        types.InlineKeyboardButton("👤 Facebook", callback_data="svc_Facebook_👤"),
+        types.InlineKeyboardButton("📸 Instagram", callback_data="svc_Instagram_📸")
+    )
+    markup.add(
+        types.InlineKeyboardButton("👨‍💻 مطور البوت للمساعدة", url=f"https://t.me/awad3210")
+    )
+    bot.send_message(
+        chat_id, 
+        "⚔️ **أهلاً بك في لوحة تحكم المقنع الفائقة**\n\n"
+        "✨ *نوفر لك أحدث السيرفرات العالمية لسحب الأرقام الافتراضية مجاناً ومباشرة.*\n\n"
+        "ℹ️ اختر الخدمة التي تريد تفعيل رقم لها من الأزرار أدناه:", 
+        reply_markup=markup, 
+        parse_mode="Markdown"
+    )
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -131,8 +156,22 @@ def start(message):
         return bot.send_message(message.chat.id, "⚠️ **عذراً يا بطل! يجب عليك الانضمام إلى قنوات البوت والجروب الرسمي أولاً لكي يعمل معك البوت بنجاح.**", reply_markup=markup, parse_mode="Markdown")
     show_main_menu(message.chat.id)
 
+@bot.message_handler(commands=['stats'])
+def show_stats(message):
+    """عرض إحصائيات البوت للمطور فقط"""
+    if message.from_user.id == ADMIN_ID:
+        count = 0
+        if os.path.exists("users.txt"):
+            with open("users.txt", "r") as f:
+                count = len(f.readlines())
+        bot.reply_to(message, f"📊 **إحصائيات المقنع الدقيقة:**\n\n👥 إجمالي المستخدمين داخل ملف التخزين: `{count}` مستخدم.")
+
 @bot.callback_query_handler(func=lambda call: True)
 def handle_queries(call):
+    # تطبيق جدار الحماية ضد السبام والضغط العشوائي
+    if check_spam(call.from_user.id):
+        return bot.answer_callback_query(call.id, "⚠️ مهلاً! اضغط ببطء شديد منعاً لتعليق السيرفر.", show_alert=True)
+
     if call.data == "verify":
         if is_subscribed(call.from_user.id):
             bot.delete_message(call.message.chat.id, call.message.message_id)
@@ -146,20 +185,20 @@ def handle_queries(call):
         btns = [types.InlineKeyboardButton(v, callback_data=f"get_{k}_{name}_{icon}") for k, v in COUNTRIES_LIST.items()]
         markup.add(*btns)
         markup.add(types.InlineKeyboardButton("🔙 عودة للقائمة الرئيسية", callback_data="back_home"))
-        bot.edit_message_text(f"{icon} **خدمة {name}**\nاختر الدولة المطلوبة لسحب الأرقام:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+        bot.edit_message_text(f"{icon} **قسم خدمات {name}**\n\nاختر الدولة المطلوبة لبدء فحص السيرفر وجلب الأرقام الحية الآن:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data.startswith("get_"):
         _, code, svc, icon = call.data.split("_")
-        bot.answer_callback_query(call.id, "⚡ جاري البحث في السيرفرات...")
+        bot.answer_callback_query(call.id, "⚡ جاري قراءة البيانات من 4 مصادر عالمية...")
         nums = fetch_all_sources(code)
         if nums:
             markup = types.InlineKeyboardMarkup(row_width=1)
             for n in nums:
                 markup.add(types.InlineKeyboardButton(f"{icon} {n}", callback_data=f"copy_{n}"))
             markup.add(types.InlineKeyboardButton("🔙 عودة لقائمة الدول", callback_data=f"svc_{svc}_{icon}"))
-            bot.edit_message_text(f"✅ **أرقام {svc} المتاحة حالياً:**\nاضغط على الرقم لنسخه.", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+            bot.edit_message_text(f"✅ **الأرقام الشغالة والمتاحة لـ {svc}:**\n\n💡 انقر فوق زر الرقم أدناه لنسخه فوراً واستعماله.", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
         else:
-            bot.answer_callback_query(call.id, "❌ لا توجد أرقام متاحة لهذه الدولة الآن، جرب دولة أخرى.", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ نفذت الأرقام حالياً لهذه الدولة، اختر دولة أخرى مجدداً.", show_alert=True)
 
     elif call.data == "back_home":
         bot.delete_message(call.message.chat.id, call.message.message_id)
@@ -167,7 +206,7 @@ def handle_queries(call):
 
     elif call.data.startswith("copy_"):
         num = call.data.split("_")[1]
-        bot.answer_callback_query(call.id, f"تم نسخ الرقم: {num}\nاستخدمه الآن!", show_alert=True)
+        bot.answer_callback_query(call.id, f"📋 تم نسخ الرقم بنجاح:\n{num}", show_alert=True)
 
 @bot.message_handler(commands=['broadcast'])
 def broadcast(message):
@@ -189,7 +228,7 @@ def send_to_all(message):
 # --- 5. التشغيل النهائي ---
 if __name__ == "__main__":
     keep_alive() 
-    print("🚀 البوت مستعد والاشتراك الإجباري والتواصل متصلان بـ عوض بنجاح!")
+    print("🚀 تم تفعيل التحديث المطور وتأمين جدار الحماية بنجاح!")
     try:
         bot.infinity_polling(timeout=20, long_polling_timeout=10)
     except Exception as e:
