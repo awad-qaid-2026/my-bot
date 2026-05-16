@@ -57,7 +57,7 @@ COUNTRIES_LIST = {
     "60": "Malaysia 🇲🇾", "62": "Indonesia 🇮🇩", "48": "Poland 🇵🇱", "1787": "Puerto Rico 🇵🇷",
     "351": "Portugal 🇵🇹", "43": "Austria 🇦🇹", "41": "Switzerland 🇨🇭", "32": "Belgium 🇧🇪",
     "45": "Denmark 🇩🇰", "358": "Finland 🇫🇮", "30": "Greece 🇬🇷", "372": "Estonia 🇪🇪",
-    "370": "Lithuania 🇱🇹", "371": "Latvia 🇱🇻", "380": "Ukraine 🇺🇦", "852": "Hong Kong 👑"
+    "370": "Lithuania 🇱🇹", "371": "Latvia 🇱вів", "380": "Ukraine 🇺🇦", "852": "Hong Kong 👑"
 }
 
 # --- 3. الدوال المساعدة ---
@@ -100,7 +100,7 @@ def fetch_all_sources(code):
 
 # --- 4. معالجة الرسائل والقوائم ---
 
-# دالة مسح إشعارات الدخول والخروج التلقائية من الجروب
+# دالة مسح إشعارات الدخول والخروج التلقائية من الجروب ليبقى نظيفاً
 @bot.message_handler(content_types=['new_chat_members', 'left_chat_member'])
 def clean_service_messages(message):
     try:
