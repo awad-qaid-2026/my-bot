@@ -34,19 +34,18 @@ def keep_alive():
     t2 = Thread(target=self_ping)
     t2.start()
 
-# --- 2. إعدادات البوت والقنوات والمجموعات المحدثة ---
+# --- 2. إعدادات البوت والقنوات والمجموعات المحدثة مئة بالمئة ---
 API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
 
-# قائمة المعرفات المحدثة المخصصة للفحص الإجباري (تأكد أن البوت مشرف داخلها جميعاً)
-CHANNELS = ['@Awad_Numbers_Bot', '@jzbznznx', '@aw1379', '@sn6hdbdn19dndw'] 
+# قائمة المعرفات الحقيقية للفحص البرامجي (تأكد أن البوت مشرف داخلها جميعاً)
+CHANNELS = ['@Awad_Numbers_Bot', '@jzbznznx', '@sn6hdbdn19dndw'] 
 
-# روابط الدعوة والأزرار التي تظهر للمستخدم عند الدخول للبوت
+# روابط الدعوة المنسقة للمستخدمين للضغط عليها والانضمام
 SUBSCRIPTION_LINKS = [
     {"name": "📢 قناة البوت الرسمية", "url": "https://t.me/Awad_Numbers_Bot"},
     {"name": "📢 قناة عبارات بشكل عام", "url": "https://t.me/jzbznznx"},
-    {"name": "📢 قناة الدعم الاحتياطية", "url": "https://t.me/aw1379"},
-    {"name": "📢 القناة الإضافية الجديدة", "url": "https://t.me/sn6hdbdn19dndw"}, # القناة الجديدة
-    {"name": "💬 جروب المناقشة والتبادل", "url": "https://t.me/+ohwA2pwywVxhOTVk"} 
+    {"name": "📢 قناة الدعم الاحتياطية الصحيحة", "url": "https://t.me/sn6hdbdn19dndw"},
+    {"name": "💬 جروب المناقشة والتبادل", "url": "https://t.me/+ohwA2pwywVxhOTVk"}
 ]
 
 ADMIN_ID = 8388141188 
@@ -107,8 +106,8 @@ def show_main_menu(chat_id):
         types.InlineKeyboardButton("🔵 Telegram", callback_data="svc_Telegram_🔵"),
         types.InlineKeyboardButton("👤 Facebook", callback_data="svc_Facebook_👤"),
         types.InlineKeyboardButton("📸 Instagram", callback_data="svc_Instagram_📸"),
-        # زر التواصل المباشر مع حسابك الشخصي الجديد والمعدل
-        types.InlineKeyboardButton("👨‍💻 تواصل مع مطور البوت", url="https://t.me/awad3210")
+        # زر تواصل مباشر وسريع مربوط بحسابك الجديد بدقة وعملية
+        types.InlineKeyboardButton("👨‍💻 تواصل مع مطور البوت", url=f"https://t.me/awad3210")
     )
     bot.send_message(chat_id, "⚔️ **أهلاً بك في لوحة تحكم المقنع**\nاختر الخدمة المطلوبة:", reply_markup=markup, parse_mode="Markdown")
 
@@ -181,7 +180,7 @@ def send_to_all(message):
 # --- 5. التشغيل النهائي ---
 if __name__ == "__main__":
     keep_alive() 
-    print("🚀 تم تحديث البوت كلياً، الحساب الشخصي الجديد والقناة مدمجة!")
+    print("🚀 البوت مستعد والاشتراك الإجباري والتواصل متصلان بـ عوض بنجاح!")
     try:
         bot.infinity_polling(timeout=20, long_polling_timeout=10)
     except Exception as e:
