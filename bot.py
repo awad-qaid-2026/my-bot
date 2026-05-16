@@ -100,13 +100,14 @@ def fetch_all_sources(code):
 
 # --- 4. معالجة الرسائل والقوائم ---
 
-# دالة مسح إشعارات الدخول والخروج التلقائية من الجروب ليبقى نظيفاً
+# دالة مسح إشعارات الدخول والخروج التلقائية من الجروب ليبقى نظيفاً ومحمياً
 @bot.message_handler(content_types=['new_chat_members', 'left_chat_member'])
 def clean_service_messages(message):
     try:
         bot.delete_message(message.chat.id, message.message_id)
+        print(f"🗑️ تم حذف إشعار الخدمة بنجاح من الجروب {message.chat.id}")
     except Exception as e:
-        print(f"خطأ أثناء حذف رسالة الخدمة: {e}")
+        print(f"❌ خطأ أثناء حذف رسالة الخدمة (تأكد من رفع البوت كمشرف): {e}")
 
 def show_main_menu(chat_id):
     markup = types.InlineKeyboardMarkup(row_width=1)
