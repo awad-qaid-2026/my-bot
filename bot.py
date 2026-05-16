@@ -34,11 +34,20 @@ def keep_alive():
     t2 = Thread(target=self_ping)
     t2.start()
 
-# --- 2. إعدادات البوت والقنوات الجديدة ---
+# --- 2. إعدادات البوت والقنوات والمجموعات المحدثة ---
 API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
 
-# هنا تم وضع القنوات الجديدة الخاصة بك بدقة للتأكد من اشتراك المستخدم
+# قائمة المعرفات التي يفحصها البوت (تأكد أن البوت مشرف داخلها جميعاً)
 CHANNELS = ['@Awad_Numbers_Bot', '@jzbznznx', '@aw1379'] 
+
+# روابط الدعوة الحقيقية التي ستظهر كأزرار للمستخدم ليضغط عليها بسهولة وينضم لقنواتك وجروبك
+SUBSCRIPTION_LINKS = [
+    {"name": "📢 قناة البوت الرسمية", "url": "https://t.me/Awad_Numbers_Bot"},
+    {"name": "📢 قناة عبارات بشكل عام", "url": "https://t.me/jzbznznx"},
+    {"name": "📢 قناة الدعم الاحتياطية", "url": "https://t.me/aw1379"},
+    {"name": "💬 جروب المناقشة والتبادل", "url": "https://t.me/+ohwA2pwywVxhOTVk"} # تم إضافة الجروب هنا بنجاح
+]
+
 ADMIN_ID = 8388141188 
 bot = telebot.TeleBot(API_TOKEN)
 
@@ -48,7 +57,7 @@ COUNTRIES_LIST = {
     "60": "Malaysia 🇲🇾", "62": "Indonesia 🇮🇩", "48": "Poland 🇵🇱", "1787": "Puerto Rico 🇵🇷",
     "351": "Portugal 🇵🇹", "43": "Austria 🇦🇹", "41": "Switzerland 🇨🇭", "32": "Belgium 🇧🇪",
     "45": "Denmark 🇩🇰", "358": "Finland 🇫🇮", "30": "Greece 🇬🇷", "372": "Estonia 🇪🇪",
-    "370": "Lithuania 🇱🇹", "371": "Latvia 🇱🇻", "380": "Ukraine 🇺🇦", "852": "Hong Kong 🇭🇰"
+    "370": "Lithuania 🇱🇹", "371": "Latvia 🇱🇻", "380": "Ukraine 🇺🇦", "852": "Hong Kong 👑"
 }
 
 # --- 3. الدوال المساعدة ---
@@ -62,6 +71,9 @@ def save_user(user_id):
             f.write(f"{user_id}\n")
 
 def is_subscribed(user_id):
+    # المطور مستثنى دائماً من الاشتراك الإجباري لتسهيل الفحص
+    if user_id == ADMIN_ID:
+        return True
     for ch in CHANNELS:
         try:
             status = bot.get_chat_member(ch, user_id).status
@@ -95,7 +107,8 @@ def show_main_menu(chat_id):
         types.InlineKeyboardButton("🔵 Telegram", callback_data="svc_Telegram_🔵"),
         types.InlineKeyboardButton("👤 Facebook", callback_data="svc_Facebook_👤"),
         types.InlineKeyboardButton("📸 Instagram", callback_data="svc_Instagram_📸"),
-        types.InlineKeyboardButton("👨‍💻 المطور (اིلཻمຼقᮭن྄༹ع🎭)", url=f"tg://user?id={ADMIN_ID}")
+        # زر تواصل مباشر وسريع مع حسابك كمطور للبوت
+        types.InlineKeyboardButton("👨‍💻 تواصل مع مطور البوت", url=f"https://t.me/aw1379")
     )
     bot.send_message(chat_id, "⚔️ **أهلاً بك في لوحة تحكم المقنع**\nاختر الخدمة المطلوبة:", reply_markup=markup, parse_mode="Markdown")
 
@@ -104,11 +117,11 @@ def start(message):
     save_user(message.from_user.id)
     if not is_subscribed(message.from_user.id):
         markup = types.InlineKeyboardMarkup(row_width=1)
-        # توليد أزرار الاشتراك للقنوات الجديدة تلقائياً
-        for ch in CHANNELS:
-            markup.add(types.InlineKeyboardButton(f"📢 انضم للقناة: {ch}", url=f"https://t.me/{ch.strip('@')}"))
+        # هنا تظهر أزرار القنوات والجروب بشكل منسق مع روابطها الصحيحة
+        for item in SUBSCRIPTION_LINKS:
+            markup.add(types.InlineKeyboardButton(item["name"], url=item["url"]))
         markup.add(types.InlineKeyboardButton("✅ تم الاشتراك، دخول البوت", callback_data="verify"))
-        return bot.send_message(message.chat.id, "⚠️ **عذراً! يجب الاشتراك في القنوات أولاً لضمان عمل البوت.**", reply_markup=markup, parse_mode="Markdown")
+        return bot.send_message(message.chat.id, "⚠️ **عذراً يا بطل! يجب عليك الانضمام إلى قنوات البوت والجروب الرسمي أولاً لكي يعمل معك البوت بنجاح.**", reply_markup=markup, parse_mode="Markdown")
     show_main_menu(message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -118,7 +131,7 @@ def handle_queries(call):
             bot.delete_message(call.message.chat.id, call.message.message_id)
             show_main_menu(call.message.chat.id)
         else:
-            bot.answer_callback_query(call.id, "❌ لم تشترك في جميع القنوات بعد! اشترك واضغط مرة أخرى.", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ لم تشترك في جميع القنوات والجروب بعد! يرجى الاشتراك والضغط مجدداً.", show_alert=True)
 
     elif call.data.startswith("svc_"):
         _, name, icon = call.data.split("_")
@@ -169,7 +182,7 @@ def send_to_all(message):
 # --- 5. التشغيل النهائي ---
 if __name__ == "__main__":
     keep_alive() 
-    print("🚀 دمار المقنع مستيقظ الآن والقنوات محدثة!")
+    print("🚀 البوت جاهز تماماً والاشتراك الإجباري للمجموعات والقنوات فعال!")
     try:
         bot.infinity_polling(timeout=20, long_polling_timeout=10)
     except Exception as e:
