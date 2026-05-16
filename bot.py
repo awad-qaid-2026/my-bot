@@ -58,7 +58,7 @@ SUBSCRIPTION_LINKS = [
 
 user_last_action = {}
 
-# قوائم الدول والأكواد المحدثة
+# قوائم الدول والأكواد المحدثة (مفصولة الاسم عن الكود لتجنب خطأ التشفير latin-1)
 COUNTRIES_PAID = {
     "russia": {"name": "🇷🇺 روسيا", "code": "russia"},
     "usa": {"name": "🇺🇸 أمريكا", "code": "usa"},
@@ -67,9 +67,18 @@ COUNTRIES_PAID = {
 }
 
 COUNTRIES_FREE = {
-    "1": "USA 🇺🇸", "44": "UK 🇬🇧", "49": "Germany 🇩🇪", "33": "France 🇫🇷", 
-    "46": "Sweden 🇸🇪", "31": "Netherlands 🇳🇱", "34": "Spain 🇪🇸", "7": "Russia 🇷🇺",
-    "60": "Malaysia 🇲🇾", "62": "Indonesia 🇮🇩", "48": "Poland 🇵🇱", "380": "Ukraine 🇺🇦"
+    "1": {"name": "USA 🇺🇸", "slug": "usa"},
+    "44": {"name": "UK 🇬🇧", "slug": "united-kingdom"},
+    "49": {"name": "Germany 🇩🇪", "slug": "germany"},
+    "33": {"name": "France 🇫🇷", "slug": "france"}, 
+    "46": {"name": "Sweden 🇸🇪", "slug": "sweden"},
+    "31": {"name": "Netherlands 🇳🇱", "slug": "netherlands"},
+    "34": {"name": "Spain 🇪🇸", "slug": "assign"},
+    "7": {"name": "Russia 🇷🇺", "slug": "russia"},
+    "60": {"name": "Malaysia 🇲🇾", "slug": "malaysia"},
+    "62": {"name": "Indonesia 🇮🇩", "slug": "indonesia"},
+    "48": {"name": "Poland 🇵🇱", "slug": "poland"},
+    "380": {"name": "Ukraine 🇺🇦", "slug": "ukraine"}
 }
 
 # --- 3. الدوال المساعدة والمحرك المطور لجلب الأرقام ---
@@ -104,21 +113,20 @@ def check_spam(user_id):
         user_last_action[user_id] = (current_time, 1)
     return False
 
-def fetch_all_sources(code):
-    """المحرك الجديد والمطور كلياً لجلب الأرقام المجانية الحية وتفادي الحجب"""
+def fetch_all_sources(code, slug):
+    """المحرك الجديد والمطور كلياً لجلب الأرقام المجانية الحية وتفادي الحجب والنصوص الغريبة"""
     nums = []
-    # 6 مصادر عالمية جديدة ومحدثة بالكامل لعام 2026
     sources = [
         f"https://receive-smss.com/free-sms-numbers/{code}",
         f"https://sms-online.co/receive-free-sms/{code}",
-        f"https://receive-sms.cc/country/{code}",
-        f"https://www.receivesms.co/country/{code}",
-        f"https://anonymsms.com/country/{code}",
-        f"https://temporary-phone-number.com/country/{code}"
+        f"https://receive-sms.cc/country/{slug}",
+        f"https://www.receivesms.co/country/{slug}",
+        f"https://anonymsms.com/country/{slug}",
+        f"https://temporary-phone-number.com/country/{slug}"
     ]
     
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Redmi) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
 
     for url in sources:
@@ -127,17 +135,15 @@ def fetch_all_sources(code):
             if r.status_code != 200: continue
             soup = BeautifulSoup(r.text, 'html.parser')
             
-            # فحص كافة الروابط والنصوص التي قد تحتوي على أرقام هواتف وهيكلة جديدة
             for element in soup.find_all(['h4', 'a', 'span', 'p']):
                 txt = element.text.strip().replace(" ", "").replace("-", "")
-                # فلترة قوية للتأكد من أنه رقم هاتف حقيقي يبدأ بمفتاح الدولة المحددة
                 if txt.startswith('+') and txt[1:].startswith(code):
-                    clean_num = re.sub(r'[^\d+]', '', txt) # تنظيف الرقم من أي شوائب نصية
+                    clean_num = re.sub(r'[^\d+]', '', txt)
                     if len(clean_num) > 8:
                         nums.append(clean_num)
         except: continue
         
-    return list(set(nums))[:14] # إزالة التكرار وجلب أعلى 14 رقم نشط
+    return list(set(nums))[:14]
 
 # --- 4. معالجة الرسائل وتنظيم القوائم الاحترافية ---
 @bot.message_handler(content_types=['new_chat_members', 'left_chat_member'])
@@ -224,12 +230,14 @@ def handle_queries(call):
         app = "whatsapp" if call.data == "p_app_whatsapp" else "telegram"
         markup = InlineKeyboardMarkup(row_width=2)
         for k, v in COUNTRIES_PAID.items():
-            markup.add(InlineKeyboardButton(v["name"], callback_data=f"p_order_{app}_{v['code']}"))
+            markup.add(InlineKeyboardButton(v["name"], callback_data=f"p_order_{app}_{k}"))
         markup.add(InlineKeyboardButton("🔙 عودة", callback_data="section_paid"))
         bot.edit_message_text("🌍 **اختر الدولة المطلوبة لسحب الرقم التلقائي منها:**", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data.startswith("p_order_"):
-        _, _, app, country = call.data.split("_")
+        parts = call.data.split("_")
+        app = parts[2]
+        country = parts[3]
         bot.answer_callback_query(call.id, "⚡ جاري طلب الرقم التلقائي من السيرفر...")
         url_order = f"https://5sim.net/v1/user/buy/activation/{country}/any/{app}"
         try:
@@ -255,7 +263,7 @@ def handle_queries(call):
                 
                 bot.send_message(call.message.chat.id, "❌ **انتهى وقت الانتظار ولم يصل كود. تم إلغاء الطلب مجاناً وضمان عدم الخصم.**")
             else:
-                bot.send_message(call.message.chat.id, "❌ **لا يوجد أرقام متوفرة حالياً لهذه الدولة أو رصيد الشحن الحالي بالمنصة غير كافٍ.**")
+                bot.send_message(call.message.chat.id, "❌ **لا يوجد أرقام متوفرة حالياً لهذه الدولة أو مفتاح الـ API غير صحيح.**")
         except Exception as e:
             bot.send_message(call.message.chat.id, f"❌ خطأ بالاتصال بالسيرفر: {e}")
 
@@ -279,21 +287,27 @@ def handle_queries(call):
     elif call.data.startswith("svc_"):
         _, name, icon = call.data.split("_")
         markup = InlineKeyboardMarkup(row_width=2)
-        btns = [InlineKeyboardButton(v, callback_data=f"get_{k}_{name}_{icon}") for k, v in COUNTRIES_FREE.items()]
+        btns = [InlineKeyboardButton(v["name"], callback_data=f"get_{k}_{name}_{icon}") for k, v in COUNTRIES_FREE.items()]
         markup.add(*btns)
         markup.add(InlineKeyboardButton("🔙 عودة", callback_data="section_free"))
         bot.edit_message_text(f"{icon} **خدمات {name} المجانية المحدثة**\n\nاختر الدولة لبدء كشط السيرفرات والجمع التلقائي للأرقام الحية الصالحة للتفعيل:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data.startswith("get_"):
-        _, code, svc, icon = call.data.split("_")
+        parts = call.data.split("_")
+        code = parts[1]
+        svc = parts[2]
+        icon = parts[3]
         bot.answer_callback_query(call.id, "⚡ جاري قراءة وكشط البيانات من 6 مصادر مجانية جديدة...")
-        nums = fetch_all_sources(code)
+        
+        slug = COUNTRIES_FREE[code]["slug"]
+        nums = fetch_all_sources(code, slug)
+        
         if nums:
             markup = InlineKeyboardMarkup(row_width=1)
             for n in nums:
                 markup.add(InlineKeyboardButton(f"{icon} {n}", callback_data=f"copy_{n}"))
             markup.add(InlineKeyboardButton("🔙 عودة لقائمة الدول", callback_data=f"svc_{svc}_{icon}"))
-            bot.edit_message_text(f"✅ **الأرقام المجانية الحية الحالية لـ {svc}:**\n\n💡 انقر فوق زر الرقم المطلوب لنسخه فوراً واستخدمه بالتطبيق لطلب الكود.", call.message.chat.id, call.message.message_id, reply_markup=markup, reply_markup_markdown=True, parse_mode="Markdown")
+            bot.edit_message_text(f"✅ **الأرقام المجانية الحية الحالية لـ {svc}:**\n\n💡 انقر فوق زر الرقم المطلوب لنسخه فوراً واستخدمه بالتطبيق لطلب الكود.", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
         else:
             bot.answer_callback_query(call.id, "❌ السيرفرات المجانية ممتلئة الآن لهذه الدولة، يرجى تجربة دولة أخرى.", show_alert=True)
 
@@ -310,7 +324,6 @@ def handle_queries(call):
         bot.edit_message_text(account_text, call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
 
     elif call.data == "admin_panel":
-        # قفل الحماية: التحقق الصارم من هوية مالك البوت الأصلي لمنع المتطفلين
         if call.from_user.id != ADMIN_ID:
             return bot.answer_callback_query(call.id, "❌ عذراً! هذه اللوحة مخصصة ومحمية لمالك البوت الأصلي فقط.", show_alert=True)
         
@@ -340,7 +353,6 @@ def handle_queries(call):
         bot.register_next_step_handler(msg, process_broadcast)
 
 def process_broadcast(message):
-    # جدار حماية إضافي للتأكد مئة بالمئة أن مرسل نص الإذاعة هو المالك فقط وليس مستخدم آخر
     if message.from_user.id != ADMIN_ID: 
         return bot.send_message(message.chat.id, "❌ خطأ أمني: لا تملك الصلاحية للقيام بهذا الإجراء!")
     count = 0
@@ -362,7 +374,7 @@ def cmd_broadcast(message):
 # --- 6. التشغيل النهائي للبوت المتكامل والمحمي ---
 if __name__ == "__main__":
     keep_alive()
-    print("🚀 تم دمج المحرك الجديد، تأمين الإذاعة لمالك البوت، وانطلاق المقنع بكفاءة تامة!")
+    print("🚀 تم إصلاح مشكلة latin-1 وانطلق البوت بأعلى كفاءة واستقرار!")
     while True:
         try:
             bot.infinity_polling(timeout=20, long_polling_timeout=10)
