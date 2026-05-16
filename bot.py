@@ -99,6 +99,15 @@ def fetch_all_sources(code):
     return list(set(nums))[:15]
 
 # --- 4. معالجة الرسائل والقوائم ---
+
+# دالة مسح إشعارات الدخول والخروج التلقائية من الجروب
+@bot.message_handler(content_types=['new_chat_members', 'left_chat_member'])
+def clean_service_messages(message):
+    try:
+        bot.delete_message(message.chat.id, message.message_id)
+    except Exception as e:
+        print(f"خطأ أثناء حذف رسالة الخدمة: {e}")
+
 def show_main_menu(chat_id):
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
@@ -106,7 +115,6 @@ def show_main_menu(chat_id):
         types.InlineKeyboardButton("🔵 Telegram", callback_data="svc_Telegram_🔵"),
         types.InlineKeyboardButton("👤 Facebook", callback_data="svc_Facebook_👤"),
         types.InlineKeyboardButton("📸 Instagram", callback_data="svc_Instagram_📸"),
-        # زر تواصل مباشر وسريع مربوط بحسابك الجديد بدقة وعملية
         types.InlineKeyboardButton("👨‍💻 تواصل مع مطور البوت", url=f"https://t.me/awad3210")
     )
     bot.send_message(chat_id, "⚔️ **أهلاً بك في لوحة تحكم المقنع**\nاختر الخدمة المطلوبة:", reply_markup=markup, parse_mode="Markdown")
