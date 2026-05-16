@@ -18,7 +18,6 @@ def run():
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
 
-# دالة ذكية تقوم بزيارة السيرفر تلقائياً كل 10 دقائق لمنعه من النوم
 def self_ping():
     time.sleep(60)
     while True:
@@ -37,18 +36,11 @@ def keep_alive():
 
 # --- 2. إعدادات البوت والقنوات الجديدة ---
 API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
+
+# هنا تم وضع القنوات الجديدة الخاصة بك بدقة للتأكد من اشتراك المستخدم
+CHANNELS = ['@Awad_Numbers_Bot', '@jzbznznx', '@aw1379'] 
 ADMIN_ID = 8388141188 
 bot = telebot.TeleBot(API_TOKEN)
-
-# قائمة القنوات الجديدة (يجب رفع البوت أدمن فيها جميعاً لكي يستطيع التحقق)
-CHANNELS = ['@v_o_lti', '@aw1379']
-
-# روابط الاشتراك التي تظهر للمستخدم في الأزرار
-CHANNEL_LINKS = [
-    {"name": "📢 قـنـاة الـمـقـنـع 1", "url": "https://t.me/+ohwA2pwywVxhOTVk"},
-    {"name": "📢 قـنـاة الـمـقـنـع 2", "url": "https://t.me/+FqlH-xjjntQxNmNk"},
-    {"name": "📢 قـنـاة الـمـقـنـع 3", "url": "https://t.me/aw1379"}
-]
 
 COUNTRIES_LIST = {
     "1": "USA 🇺🇸", "44": "UK 🇬🇧", "49": "Germany 🇩🇪", "33": "France 🇫🇷", 
@@ -56,7 +48,7 @@ COUNTRIES_LIST = {
     "60": "Malaysia 🇲🇾", "62": "Indonesia 🇮🇩", "48": "Poland 🇵🇱", "1787": "Puerto Rico 🇵🇷",
     "351": "Portugal 🇵🇹", "43": "Austria 🇦🇹", "41": "Switzerland 🇨🇭", "32": "Belgium 🇧🇪",
     "45": "Denmark 🇩🇰", "358": "Finland 🇫🇮", "30": "Greece 🇬🇷", "372": "Estonia 🇪🇪",
-    "370": "Lithuania 🇱🇹", "371": "Latvia 🇱🇻", "380": "Ukraine 🇺🇦", "852": "Hong Kong 💡"
+    "370": "Lithuania 🇱🇹", "371": "Latvia 🇱🇻", "380": "Ukraine 🇺🇦", "852": "Hong Kong 🇭🇰"
 }
 
 # --- 3. الدوال المساعدة ---
@@ -112,10 +104,11 @@ def start(message):
     save_user(message.from_user.id)
     if not is_subscribed(message.from_user.id):
         markup = types.InlineKeyboardMarkup(row_width=1)
-        for ch_info in CHANNEL_LINKS:
-            markup.add(types.InlineKeyboardButton(ch_info["name"], url=ch_info["url"]))
+        # توليد أزرار الاشتراك للقنوات الجديدة تلقائياً
+        for ch in CHANNELS:
+            markup.add(types.InlineKeyboardButton(f"📢 انضم للقناة: {ch}", url=f"https://t.me/{ch.strip('@')}"))
         markup.add(types.InlineKeyboardButton("✅ تم الاشتراك، دخول البوت", callback_data="verify"))
-        return bot.send_message(message.chat.id, "⚠️ **عذراً! يجب الاشتراك في قنوات البوت أولاً لتتمكن من استخدامه.**", reply_markup=markup, parse_mode="Markdown")
+        return bot.send_message(message.chat.id, "⚠️ **عذراً! يجب الاشتراك في القنوات أولاً لضمان عمل البوت.**", reply_markup=markup, parse_mode="Markdown")
     show_main_menu(message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -125,7 +118,7 @@ def handle_queries(call):
             bot.delete_message(call.message.chat.id, call.message.message_id)
             show_main_menu(call.message.chat.id)
         else:
-            bot.answer_callback_query(call.id, "❌ لم تشترك في جميع القنوات بعد يا بطل! اشترك واضغط تفعيل الكود.", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ لم تشترك في جميع القنوات بعد! اشترك واضغط مرة أخرى.", show_alert=True)
 
     elif call.data.startswith("svc_"):
         _, name, icon = call.data.split("_")
@@ -176,7 +169,7 @@ def send_to_all(message):
 # --- 5. التشغيل النهائي ---
 if __name__ == "__main__":
     keep_alive() 
-    print("🚀 دمار المقنع مستيقظ الآن 24/7 بإنعاش ذاتي والقنوات الجديدة مفعّلة!")
+    print("🚀 دمار المقنع مستيقظ الآن والقنوات محدثة!")
     try:
         bot.infinity_polling(timeout=20, long_polling_timeout=10)
     except Exception as e:
