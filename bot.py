@@ -5,8 +5,9 @@ from telebot import types
 import os
 from flask import Flask
 from threading import Thread
+import time
 
-# --- 1. نظام منع النوم (Keep Alive) ---
+# --- 1. نظام منع النوم الذاتي الآلي (Self Keep Alive) ---
 app = Flask('')
 
 @app.route('/')
@@ -14,13 +15,29 @@ def home():
     return "The Masked Bot is Alive! 🎭"
 
 def run():
-    # Render يطلب تشغيل السيرفر على منفذ معين يتحسسه الكود آلياً
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
 
+# دالة ذكية تقوم بزيارة السيرفر تلقائياً كل 10 دقائق لمنعه من النوم
+def self_ping():
+    # انتظر دقيقة حتى يقلع السيرفر تماماً في البداية
+    time.sleep(60)
+    while True:
+        try:
+            # البوت يقوم بطلب رابط نفسه لكي يبقى مستيقظاً 24 ساعة
+            requests.get("https://al-moqana.onrender.com", timeout=10)
+            print("⏰ تم إنعاش السيرفر ذاتياً بنجاح لضمان عدم النوم!")
+        except Exception as e:
+            print(f"Ping error: {e}")
+        time.sleep(600) # يكرر العملية كل 10 دقائق (600 ثانية)
+
 def keep_alive():
-    t = Thread(target=run)
-    t.start()
+    # تشغيل سيرفر الويب
+    t1 = Thread(target=run)
+    t1.start()
+    # تشغيل نظام الإنعاش الذاتي
+    t2 = Thread(target=self_ping)
+    t2.start()
 
 # --- 2. إعدادات البوت ---
 API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
@@ -30,7 +47,7 @@ bot = telebot.TeleBot(API_TOKEN)
 
 COUNTRIES_LIST = {
     "1": "USA 🇺🇸", "44": "UK 🇬🇧", "49": "Germany 🇩🇪", "33": "France 🇫🇷", 
-    "46": "Sweden 🇸🇪", "31": "Netherlands 🇳🇱", "34": "Spain 🇪🇸", "7": "Russia 🇺🇺",
+    "46": "Sweden 🇸🇪", "31": "Netherlands 🇳🇱", "34": "Spain 🇪🇸", "7": "Russia 🇷🇺",
     "60": "Malaysia 🇲🇾", "62": "Indonesia 🇮🇩", "48": "Poland 🇵🇱", "1787": "Puerto Rico 🇵🇷",
     "351": "Portugal 🇵🇹", "43": "Austria 🇦🇹", "41": "Switzerland 🇨🇭", "32": "Belgium 🇧🇪",
     "45": "Denmark 🇩🇰", "358": "Finland 🇫🇮", "30": "Greece 🇬🇷", "372": "Estonia 🇪🇪",
@@ -154,7 +171,7 @@ def send_to_all(message):
 # --- 5. التشغيل النهائي ---
 if __name__ == "__main__":
     keep_alive() 
-    print("🚀 دمار المقنع مستيقظ الآن 24/7!")
+    print("🚀 دمار المقنع مستيقظ الآن 24/7 بإنعاش ذاتي!")
     try:
         bot.infinity_polling(timeout=20, long_polling_timeout=10)
     except Exception as e:
