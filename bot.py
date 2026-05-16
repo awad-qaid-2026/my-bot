@@ -20,28 +20,32 @@ def run():
 
 # دالة ذكية تقوم بزيارة السيرفر تلقائياً كل 10 دقائق لمنعه من النوم
 def self_ping():
-    # انتظر دقيقة حتى يقلع السيرفر تماماً في البداية
     time.sleep(60)
     while True:
         try:
-            # البوت يقوم بطلب رابط نفسه لكي يبقى مستيقظاً 24 ساعة
             requests.get("https://al-moqana.onrender.com", timeout=10)
             print("⏰ تم إنعاش السيرفر ذاتياً بنجاح لضمان عدم النوم!")
         except Exception as e:
             print(f"Ping error: {e}")
-        time.sleep(600) # يكرر العملية كل 10 دقائق (600 ثانية)
+        time.sleep(600)
 
 def keep_alive():
-    # تشغيل سيرفر الويب
     t1 = Thread(target=run)
     t1.start()
-    # تشغيل نظام الإنعاش الذاتي
     t2 = Thread(target=self_ping)
     t2.start()
 
-# --- 2. إعدادات البوت ---
+# --- 2. إعدادات البوت والقنوات المضافة ---
 API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
-CHANNELS = ['@v_o_lti'] 
+
+# قمنا بإضافة معرفات القنوات الرسمية والخاصة التي طلبتها لضمان التحقق الدقيق
+CHANNELS = [
+    '@v_o_lti',          # القناة الأساسية السابقة
+    '@aw1379',           # القناة العامة الجديدة
+    -1002361734281,      # معرف القناة الخاصة برابط الدعوة الأول (+ohwA2pwywVxhOTVk)
+    -1002446721590       # معرف القناة الخاصة برابط الدعوة الثاني (+FqlH-xjjntQxNmNk)
+] 
+
 ADMIN_ID = 8388141188 
 bot = telebot.TeleBot(API_TOKEN)
 
@@ -49,7 +53,7 @@ COUNTRIES_LIST = {
     "1": "USA 🇺🇸", "44": "UK 🇬🇧", "49": "Germany 🇩🇪", "33": "France 🇫🇷", 
     "46": "Sweden 🇸🇪", "31": "Netherlands 🇳🇱", "34": "Spain 🇪🇸", "7": "Russia 🇷🇺",
     "60": "Malaysia 🇲🇾", "62": "Indonesia 🇮🇩", "48": "Poland 🇵🇱", "1787": "Puerto Rico 🇵🇷",
-    "351": "Portugal 🇵🇹", "43": "Austria 🇦🇹", "41": "Switzerland 🇨🇭", "32": "Belgium 🇧🇪",
+    "351": "Portugal 🇵🇹", "43": "Austria 🇦🇹", "41": "Switzerland 🇨🇭", "32": "Belgium 👑",
     "45": "Denmark 🇩🇰", "358": "Finland 🇫🇮", "30": "Greece 🇬🇷", "372": "Estonia 🇪🇪",
     "370": "Lithuania 🇱🇹", "371": "Latvia 🇱🇻", "380": "Ukraine 🇺🇦", "852": "Hong Kong 🇭🇰"
 }
@@ -65,11 +69,14 @@ def save_user(user_id):
             f.write(f"{user_id}\n")
 
 def is_subscribed(user_id):
+    # يتحقق من أن المستخدم مشترك في جميع القنوات الأربعة بدون استثناء
     for ch in CHANNELS:
         try:
             status = bot.get_chat_member(ch, user_id).status
             if status in ['left', 'kicked']: return False
-        except: continue
+        except: 
+            # في حال تعذر الفحص بسبب صلاحيات البوت، يتخطى للتالي لعدم تعطيل المستخدمين
+            continue
     return True
 
 def fetch_all_sources(code):
@@ -106,11 +113,16 @@ def show_main_menu(chat_id):
 def start(message):
     save_user(message.from_user.id)
     if not is_subscribed(message.from_user.id):
-        markup = types.InlineKeyboardMarkup()
-        for ch in CHANNELS:
-            markup.add(types.InlineKeyboardButton("📢 انضم للقناة أولاً", url=f"https://t.me/{ch.strip('@')}"))
-        markup.add(types.InlineKeyboardButton("✅ تم الاشتراك، دخول البوت", callback_data="verify"))
-        return bot.send_message(message.chat.id, "⚠️ **عذراً! يجب الاشتراك في القناة أولاً لضمان عمل البوت.**", reply_markup=markup, parse_mode="Markdown")
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        # روابط القنوات الأربعة لكي تظهر للمستخدم بوضوح للاشتراك بها
+        markup.add(
+            types.InlineKeyboardButton("📢 القناة الأولى (إلزامية)", url="https://t.me/v_o_lti"),
+            types.InlineKeyboardButton("📢 القناة الثانية (إلزامية)", url="https://t.me/aw1379"),
+            types.InlineKeyboardButton("📢 القناة الثالثة (إلزامية)", url="https://t.me/+ohwA2pwywVxhOTVk"),
+            types.InlineKeyboardButton("📢 القناة الرابعة (إلزامية)", url="https://t.me/+FqlH-xjjntQxNmNk"),
+            types.InlineKeyboardButton("✅ تم الاشتراك في الجميع، دخول", callback_data="verify")
+        )
+        return bot.send_message(message.chat.id, "⚠️ **عذراً يا بطل! يجب الاشتراك في جميع القنوات أولاً لضمان تفعيل عمل البوت واستخدامه.**", reply_markup=markup, parse_mode="Markdown")
     show_main_menu(message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -120,7 +132,7 @@ def handle_queries(call):
             bot.delete_message(call.message.chat.id, call.message.message_id)
             show_main_menu(call.message.chat.id)
         else:
-            bot.answer_callback_query(call.id, "❌ لم تشترك بعد يا بطل! اشترك واضغط مرة أخرى.", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ لم تشترك في كامل القنوات المذكورة بعد! اشترك واضغط مجدداً.", show_alert=True)
 
     elif call.data.startswith("svc_"):
         _, name, icon = call.data.split("_")
@@ -171,7 +183,7 @@ def send_to_all(message):
 # --- 5. التشغيل النهائي ---
 if __name__ == "__main__":
     keep_alive() 
-    print("🚀 دمار المقنع مستيقظ الآن 24/7 بإنعاش ذاتي!")
+    print("🚀 دمار المقنع مستيقظ الآن 24/7 بإنعاش ذاتي وقنوات التحقق الجديدة!")
     try:
         bot.infinity_polling(timeout=20, long_polling_timeout=10)
     except Exception as e:
