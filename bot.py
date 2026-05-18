@@ -1,13 +1,11 @@
 import sys
 import os
 import time
-import re
 from threading import Thread
-import concurrent.futures  
+import concurrent.futures
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import requests
-from bs4 import BeautifulSoup
 from flask import Flask
 
 # --- 1. SYSTEM ENCODING FORCE ---
@@ -24,7 +22,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "⚡ Al-Moqana Smart Anti-Block Filtering Server is Active! ⚡"
+    return "⚡ Al-Moqana Ultra-Stable Premium Gateway is Active! ⚡"
 
 def run():
     port = int(os.environ.get("PORT", 8080))
@@ -78,11 +76,11 @@ SERVICES_PAID = {
 
 COUNTRIES_DATA = {
     "yemen": {"name": "🇾🇪 Yemen / اليمن", "slug": "yemen", "code": "967"},
-    "saudiarabia": {"name": "🇸🇦 Saudi Arabia / السعودية", "slug": "saudi-arabia", "code": "966"},
+    "saudiarabia": {"name": "🇸🇦 Saudi Arabia / السعودية", "slug": "saudiarabia", "code": "966"},
     "egypt": {"name": "🇪🇬 Egypt / مصر", "slug": "egypt", "code": "20"},
     "iraq": {"name": "🇮🇶 Iraq / العراق", "slug": "iraq", "code": "964"},
     "morocco": {"name": "🇲🇦 Morocco / المغرب", "slug": "morocco", "code": "212"},
-    "uae": {"name": "🇦🇪 UAE / الإمارات", "slug": "united-arab-emirates", "code": "971"},
+    "uae": {"name": "🇦🇪 UAE / الإمارات", "slug": "uae", "code": "971"},
     "kuwait": {"name": "🇰🇼 Kuwait / الكويت", "slug": "kuwait", "code": "965"},
     "oman": {"name": "🇴🇲 Oman / عمان", "slug": "oman", "code": "968"},
     "jordan": {"name": "🇯🇴 Jordan / الأردن", "slug": "jordan", "code": "962"},
@@ -94,7 +92,7 @@ COUNTRIES_DATA = {
     "libya": {"name": "🇱🇾 Libya / ليبيا", "slug": "libya", "code": "218"},
     "sudan": {"name": "🇸🇩 Sudan / السودان", "slug": "sudan", "code": "249"},
     "usa": {"name": "🇺🇸 USA / أمريكا", "slug": "usa", "code": "1"},
-    "uk": {"name": "🇬🇧 UK / بريطانيا", "slug": "united-kingdom", "code": "44"},
+    "uk": {"name": "🇬🇧 UK / بريطانيا", "slug": "england", "code": "44"},
     "germany": {"name": "🇩🇪 Germany / ألمانيا", "slug": "germany", "code": "49"},
     "france": {"name": "🇫🇷 France / فرنسا", "slug": "france", "code": "33"},
     "russia": {"name": "🇷🇺 Russia / روسيا", "slug": "russia", "code": "7"},
@@ -106,13 +104,8 @@ COUNTRIES_DATA = {
     "india": {"name": "🇮🇳 India / الهند", "slug": "india", "code": "91"}
 }
 
-# 🔒 قواميس الفلترة الحية المنفصلة والمستقلة لكل تطبيق لمنع اختفاء الأزرار بشكل كامل
-ACTIVE_FREE_MAP = {
-    "whatsapp": [],
-    "telegram": [],
-    "facebook": [],
-    "instagram": []
-}
+# 🔒 المتغير الديناميكي الذي يحفظ الدول الشغالة والتي تحتوي على مخزون أرقام حقيقي في 5sim
+ACTIVE_API_COUNTRIES = {}
 
 # --- 4. HELPERS ---
 def save_user(user_id):
@@ -152,82 +145,43 @@ def check_spam(user_id):
         user_last_action[user_id] = (current_time, 1)
     return False
 
-# --- 5. 🚀 HYPER MULTI-SOURCE SCRAPER & LIVE VALIDATOR ---
-def scrape_single_source(url, code):
-    nums = []
-    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'}
+# 🔄 فاحص المخزون الآلي: يتحقق من توفر الأرقام لكل تطبيق وتختفي الدولة فوراً إذا فرغت
+def check_app_stock(app_code):
+    available = []
     try:
-        r = requests.get(url, headers=headers, timeout=4)
-        if r.status_code == 200:
-            soup = BeautifulSoup(r.text, 'html.parser')
-            for element in soup.find_all(['h3', 'h4', 'a', 'span', 'p', 'td', 'div']):
-                txt = element.text.strip().replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
-                if txt.startswith('+') and txt[1:].startswith(code):
-                    clean_num = re.sub(r'[^\d+]', '', txt)
-                    if len(clean_num) > 8: nums.append(clean_num)
-                elif txt.startswith(code) and len(txt) > 8:
-                    clean_num = "+" + re.sub(r'[^\d]', '', txt)
-                    nums.append(clean_num)
-    except:
-        pass
-    return nums
-
-def fetch_all_sources_fast(code, slug):
-    sources = [
-        f"https://sms-receive.net/free-sms-numbers-{slug}",
-        f"https://receive-smss.com/free-sms-numbers/{code}",
-        f"https://anonymsms.com/country/{slug}",
-        f"https://sms24.me/en/countries/{slug}",
-        f"https://receive-sms.cc/country/{slug}",
-        f"https://www.receivesms.co/country/{slug}",
-        f"https://temporary-phone-number.com/country/{slug}",
-        f"https://freephonenums.com/{slug}",
-        f"https://online-sms.org/en/countries/{slug}",
-        f"https://sms-online.co/receive-free-sms/{slug}",
-        f"https://receiveasms.com/country/{slug}"
-    ]
-    
-    all_numbers = []
-    # تقليل عدد العمال المتزامنين قليلاً لتفادي كشف السيرفر وحظره من المواقع الكبرى
-    with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
-        futures = [executor.submit(scrape_single_source, url, code) for url in sources]
-        for future in concurrent.futures.as_completed(futures):
-            all_numbers.extend(future.result())
-            
-    return list(set(all_numbers))[:30]
-
-# 🔄 دالة الفحص الخلفي المتطورة مع حماية منع الحظر (Anti-Block) وفلترة منفصلة تماماً لكل خدمة
-def background_country_checker():
-    global ACTIVE_FREE_MAP
-    while True:
-        print("🔍 [نظام حماية المقنع] جاري فحص وتحديث قنوات الأرقام المجانية بحذر لمنع الحظر...")
-        
-        for app_key in ACTIVE_FREE_MAP.keys():
-            valid_countries = []
-            
+        url = f"https://5sim.net/v1/guest/products/any/any/{app_code}"
+        res = requests.get(url, timeout=8)
+        if res.status_code == 200:
+            data = res.json()
             for k, v in COUNTRIES_DATA.items():
-                try:
-                    res_nums = fetch_all_sources_fast(v["code"], v["slug"])
-                    if len(res_nums) > 0:
-                        valid_countries.append(k)
-                    # 🛡️ تأخير ذكي بمقدار نصف ثانية بين كل دولة وأخرى لخداع خوارزميات الحظر في المواقع
-                    time.sleep(0.5)
-                except:
-                    pass
-            
-            ACTIVE_FREE_MAP[app_key] = valid_countries
-            print(f"✅ تحديث حي لقسم [{app_key}]: الدول النشطة حالياً هي -> {valid_countries}")
-            time.sleep(2)  # فصل زمني بين التطبيقات
-            
-        print("💤 اكتملت دورة الفحص الشاملة! سيتم إعادة الفحص الذكي بعد 3 دقائق.")
-        time.sleep(180) 
+                country_slug = v["slug"]
+                if country_slug in data and data[country_slug].get("Qty", 0) > 0:
+                    available.append(k)
+    except Exception as e:
+        print(f"Stock check error for {app_code}: {e}")
+    return app_code, available
 
-# --- 6. INTERFACE AND HANDLERS ---
+def background_api_checker():
+    global ACTIVE_API_COUNTRIES
+    while True:
+        print("🔍 [نظام الفلترة الذكي] جاري تحديث مخزون الأرقام من بوابة الـ API...")
+        new_map = {}
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            futures = [executor.submit(check_app_stock, app_key) for app_key in SERVICES_PAID.keys()]
+            for future in concurrent.futures.as_completed(futures):
+                app_code, allowed_countries = future.result()
+                new_map[app_code] = allowed_countries
+                
+        ACTIVE_API_COUNTRIES = new_map
+        print("✅ تم تحديث الخريطة الحية للأزرار بنجاح دون استهلاك للسيرفر.")
+        time.sleep(60)  # تحديث دوري خفيف ومستقر كل دقيقة
+
+# --- 5. INTERFACE AND HANDLERS ---
 def show_main_menu(chat_id):
     markup = InlineKeyboardMarkup(row_width=1)
     markup.add(
-        InlineKeyboardButton("🛍️ قسم الأرقام المدفوعة • كود فوري تفعيل مضمون", callback_data="section_paid"),
-        InlineKeyboardButton("🌐 قسم الأرقام المجانية • تحديث تلقائي سريع", callback_data="section_free"),
+        InlineKeyboardButton("🛍️ قسم اقتناص الأرقام الحصرية • تفعيل فوري المضمون", callback_data="section_paid"),
         InlineKeyboardButton("💡 نصائح هامة لتثبيت وتفعيل الرقم", callback_data="activation_tips")
     )
     markup.add(
@@ -237,10 +191,10 @@ def show_main_menu(chat_id):
     markup.add(InlineKeyboardButton("⚙️ لوحة التحكم للمطور", callback_data="admin_panel"))
     
     welcome_text = (
-        "👑 **مرحباً بك في نظام المقنع الفائق لإدارة وتفعيل الأرقام**\n\n"
-        "✨ `المحرك النفاث نشط الآن ومزود بنظام الفلترة والتحقق التلقائي لعام 2026`\n"
-        "🎯 *تستطيع الآن اقتناص أرقام مجانية أو مدفوعة لتفعيل الواتساب، التليجرام، الفيسبوك، والانستغرام بثوانٍ.*\n\n"
-        "👇 اختر القسم الذي تريده من الأزرار المنسقة بالأسفل:"
+        "👑 **مرحباً بك في نظام المقنع الفائق لتفعيل الأرقام الحصرية**\n\n"
+        "✨ `السيرفر متصل الآن ببوابة الـ API المستقرة والمحمية لعام 2026`\n"
+        "🎯 *تستطيع الآن سحب أرقامك الخاصة والآمنة تماماً لتفعيل الواتساب، التليجرام، الفيسبوك، والانستغرام بثوانٍ.*\n\n"
+        "👇 اختر الخدمة المطلوبة من الأسفل:"
     )
     bot.send_message(chat_id, welcome_text, reply_markup=markup, parse_mode="Markdown")
 
@@ -255,7 +209,7 @@ def start(message):
         
         lock_text = (
             "⚠️ **تنبيه أمني مهم جداً!**\n\n"
-            "لضمان استقرار السيرفر وسحب الأرقام بدون حظر، يجب عليك الانضمام لقنوات ومجموعة البوت أولاً.\n\n"
+            "للوصول إلى بوابة الأرقام الحصرية، يجب عليك الانضمام لقنوات ومجموعة البوت أولاً.\n\n"
             "يرجى الضغط على الأزرار أدناه للاشتراك، ثم اضغط على زر التحقق 👇"
         )
         return bot.send_message(message.chat.id, lock_text, reply_markup=markup, parse_mode="Markdown")
@@ -282,12 +236,12 @@ def handle_queries(call):
             "💡 **دليل المقنع الذهبي لتثبيت وتفعيل الأرقام بنجاح:**\n\n"
             "1️⃣ لتثبيت رقم واتساب دون حظر، استخدم نسخة *WhatsApp Business* رسمية أو تطبيق واتساب الأخضر الأساسي.\n"
             "2️⃣ عند طلب كود الحساب (واتساب، فيسبوك، انستغرام) انتظر العداد حتى ينتهي تماماً ولا تضغط 'إعادة إرسال' بسرعة.\n"
-            "3️⃣ إذا كنت تريد تفعيل حسابات رسمية وهامة، ننصحك دائماً بـ **القسم المدفوع** للحصول على رقم خاص ومحمي لك بالكامل لا يمكن لأحد سحبه منك."
+            "3️⃣ ميزة النظام الحصري تمنحك رقماً خاصاً ومحمياً لك بالكامل لا يمكن لأحد سحبه منك لاحقاً."
         )
         markup = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 عودة للقائمة الرئيسية", callback_data="back_home"))
         bot.edit_message_text(tips, call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
 
-    # === PAID SECTION ===
+    # === PREMIUM PAID SECTION ===
     elif call.data == "section_paid":
         markup = InlineKeyboardMarkup(row_width=2)
         for k, v in SERVICES_PAID.items():
@@ -295,19 +249,31 @@ def handle_queries(call):
         markup.add(InlineKeyboardButton("🔙 عودة للملف الرئيسي", callback_data="back_home"))
         
         paid_text = (
-            "🛍️ **مرحباً بك في متجر الأرقام المدفوعة الحصرية**\n\n"
-            "✨ هنا يتم اقتناص الأرقام الحصرية لك وحدك مع فحص آلي فوري لوصول الكود.\n"
-            "👇 اختر التطبيق المطلوب لتفعيله الآن:"
+            "🛍️ **مرحباً بك في متجر الأرقام الحصرية المضمونة**\n\n"
+            "👇 اختر التطبيق المطلوب لتفعيله الآن برقمك الخاص:"
         )
         bot.edit_message_text(paid_text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data.startswith("p_app_"):
         app_name = call.data.replace("p_app_", "")
         markup = InlineKeyboardMarkup(row_width=2)
+        
+        # 🛡️ ميزة الاختفاء والظهور التلقائي: تظهر فقط الدول التي تحتوي على مخزون أرقام حقيقي للتطبيق المحدد حالياً
+        btns = []
+        allowed_list = ACTIVE_API_COUNTRIES.get(app_name, [])
+        
         for k, v in COUNTRIES_DATA.items():
-            markup.add(InlineKeyboardButton(v["name"], callback_data=f"p_order_{app_name}_{k}"))
-        markup.add(InlineKeyboardButton("🔙 عودة للقسم", callback_data="section_paid"))
-        bot.edit_message_text("🌍 **اختر الدولة المطلوبة (العربية أو الأجنبية) لسحب رقمك الحصري منها:**", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+            if k in allowed_list:
+                btns.append(InlineKeyboardButton(v["name"], callback_data=f"p_order_{app_name}_{v['slug']}"))
+                
+        if btns:
+            markup.add(*btns)
+            markup.add(InlineKeyboardButton("🔙 عودة للقسم", callback_data="section_paid"))
+            bot.edit_message_text("🌍 **اختر الدولة المطلوبة المتوفر بها أرقام حية ونشطة الآن:**", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+        else:
+            markup.add(InlineKeyboardButton("🔄 تحديث قائمة الدول الشغالة", callback_data=f"p_app_{app_name}"))
+            markup.add(InlineKeyboardButton("🔙 عودة للقسم", callback_data="section_paid"))
+            bot.edit_message_text("⏳ **جميع أرقام هذه الخدمة ممتلئة في بوابة المزود حالياً..**\n\nاضغط على زر التحديث بعد ثوانٍ لإعادة جلب الدول الشغالة تلقائياً بمجرد نزول مخزون جديد.", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data.startswith("p_order_"):
         parts = call.data.split("_")
@@ -315,11 +281,11 @@ def handle_queries(call):
         target_country = parts[3]
         
         bot.answer_callback_query(call.id, "⚡ Requesting secure line from Gateway...")
-        bot.edit_message_text("📡 `جاري الاتصال ببوابة الـ API وجلب الرقم الحصري.. انتظر ثوانٍ..`", call.message.chat.id, call.message.message_id, parse_mode="Markdown")
+        bot.edit_message_text("📡 `جاري الاتصال بـ API المقنع وجلب رقمك المخصص.. انتظر ثوانٍ..`", call.message.chat.id, call.message.message_id, parse_mode="Markdown")
         
         url_order = f"https://5sim.net/v1/user/buy/activation/{target_country}/any/{target_app}"
         try:
-            res = requests.get(url_order, headers=HEADERS_5SIM, timeout=10)
+            res = requests.get(url_order, headers=HEADERS_5SIM, timeout=12)
             if res.status_code == 200:
                 data = res.json()
                 num_id = data.get("id")
@@ -328,12 +294,12 @@ def handle_queries(call):
                 final_price = round(price + PROFIT_MARGIN, 2)
                 
                 success_box = (
-                    "🎉 **تم سحب واقتناص الرقم بنجاح!**\n\n"
+                    "🎉 **تم اقتناص وسحب الرقم الحصري بنجاح!**\n\n"
                     f"📱 **التطبيق المستهدف:** `{target_app.upper()}`\n"
                     f"🌍 **دولة الرقم:** `{target_country.upper()}`\n"
                     f"💵 **التكلفة الإجمالية:** `{final_price} $`\n\n"
-                    f"📞 **الرقم المخصص لك (اضغط عليه للنسخ):**\n`{phone}`\n\n"
-                    "⚠️ **خطوتك التالية:** انسخ الرقم وضعه في التطبيق المطلوب واطلب الكود، ثم انتظر هنا.. السيرفر يفحص وصول الكود تلقائياً."
+                    f"📞 **الرقم الخاص بك (اضغط للنسخ الفوري):**\n`{phone}`\n\n"
+                    "⚠️ **خطوتك التالية:** ضع الرقم في التطبيق واطلب كود التفعيل، الخادم يراقب ويحدث الشاشة تلقائياً عند وصول الكود."
                 )
                 bot.send_message(call.message.chat.id, success_box, parse_mode="Markdown")
                 
@@ -350,115 +316,25 @@ def handle_queries(call):
                             print(f"Log Channel Error: {log_error}")
 
                         otp_box = (
-                            "🔥 **بشرى سارة! وصل كود التفعيل الفوري الآن:**\n\n"
+                            "🔥 **بشرى سارة! وصل كود التفعيل الفوري الخاص بك:**\n\n"
                             f"📞 **الرقم:** `{phone}`\n"
-                            f"🔑 **كود الـ OTP (الآمن والمحمي):** `{secure_code}`\n\n"
-                            f"📢 **ملاحظة أمنية لحمايتك:** تم إخفاء آخر خانتين من الكود في شات البوت المفتوح منعا للسرقة، للحصول على الكود كاملاً وسليماً 100% يرجى التحقق من قناتنا الرسمية فوراً: {CHANNEL_LOG_ID}"
+                            f"🔑 **كود الـ OTP (المحمي):** `{secure_code}`\n\n"
+                            f"📢 **ملاحظة أمنية:** لحمايتك، تم إخفاء آخر خانتين في الشات العام، للحصول على الكود كاملاً 100% يرجى مراجعة قناتنا الرسمية فوراً: {CHANNEL_LOG_ID}"
                         )
                         return bot.send_message(call.message.chat.id, otp_box, parse_mode="Markdown")
                 
-                bot.send_message(call.message.chat.id, "❌ **انتهى الوقت المحدد ولم يصل كود للتطبيق. تم إلغاء الطلب تلقائياً وإرجاع رصيدك مجاناً دون خصم.**")
+                bot.send_message(call.message.chat.id, "❌ **انتهى الوقت المحدد ولم يرسل التطبيق الكود. تم إلغاء الطلب تلقائياً وإرجاع رصيدك دون أي خصم.**")
             else:
-                bot.send_message(call.message.chat.id, "❌ **السيرفر غير مشحون أو الأرقام ممتلئة حالياً:** يرجى التأكد من وضع مفتاح 5sim الصحيح وشحنه بالرصيد لتفعيل الأرقام التلقائية.")
+                bot.send_message(call.message.chat.id, "❌ **لا يوجد رصيد كافٍ في حساب 5sim أو الأرقام ممتلئة:** يرجى شحن حساب المزود وتعيين مفتاح الـ API الصحيح لتشغيل السحب التلقائي.")
         except Exception as e:
-            bot.send_message(call.message.chat.id, f"❌ خطأ اتصال بالشبكة: {e}")
-
-    # === FREE SECTION ===
-    elif call.data == "section_free":
-        markup = InlineKeyboardMarkup(row_width=2)
-        markup.add(
-            InlineKeyboardButton("🟢 WhatsApp / واتساب", callback_data="fsvc_whatsapp_🟢"),
-            InlineKeyboardButton("🔵 Telegram / تليجرام", callback_data="fsvc_telegram_🔵"),
-            InlineKeyboardButton("🔵 Facebook / فيسبوك", callback_data="fsvc_facebook_🔵"),
-            InlineKeyboardButton("📸 Instagram / انستغرام", callback_data="fsvc_instagram_📸")
-        )
-        markup.add(InlineKeyboardButton("🔙 عودة للقائمة الرئيسية", callback_data="back_home"))
-        
-        free_text = (
-            "🌐 **بوابة السحب المجاني السريع والمحدثة بالخيوط المتوازية**\n\n"
-            "✨ يقوم المحرك الآن بعمل فحص متزامن وفوري لـ 15 موقع عالمي كبرى لاقتناص الأرقام المفتوحة مجاناً وبأقصى سرعة جلب نفاثة.\n"
-            "👇 اختر الخدمة التي تريد البحث عن أرقام نشطة لها:"
-        )
-        bot.edit_message_text(free_text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
-
-    elif call.data.startswith("fsvc_"):
-        _, name, icon = call.data.split("_")
-        markup = InlineKeyboardMarkup(row_width=2)
-        
-        # 🛡️ فلترة حية حقيقية ومنفصلة تماماً بناءً على اسم التطبيق المحدد لمنع الأخطاء والتعليق
-        btns = []
-        allowed_list = ACTIVE_FREE_MAP.get(name, [])
-        
-        for k, v in COUNTRIES_DATA.items():
-            if k in allowed_list:  
-                btns.append(InlineKeyboardButton(v["name"], callback_data=f"fget_{v['code']}_{name}_{icon}"))
-                
-        if btns:
-            markup.add(*btns)
-            markup.add(InlineKeyboardButton("🔙 عودة للقسم", callback_data="section_free"))
-            bot.edit_message_text(f"{icon} **تفعيل خدمات {name.upper()} المجانية**\n\n🌍 اختر الدولة لبدء كشط وجمع الأرقام الحية الجاهزة للاستخدام في نفس الثانية:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
-        else:
-            # زر تحديث مخصص يتيح للمستخدمين إعادة تهيئة السحب دون مشاكل
-            markup.add(InlineKeyboardButton("🔄 فحص وتحديث السيرفرات العالمية 🌐", callback_data=f"fsvc_{name}_{icon}"))
-            markup.add(InlineKeyboardButton("🔙 عودة للقسم", callback_data="section_free"))
-            bot.edit_message_text(f"⏳ **جاري تنظيف وجلب أرقام جديدة من السيرفرات لخدمة {name.upper()} حالياً...**\n\nلتفادي حظر المواقع، يرجى الانتظار دقيقة ثم الضغط على زر التحديث أدناه لحصد الأرقام المفتوحة فوراً.", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
-
-    elif call.data.startswith("fget_"):
-        parts = call.data.split("_")
-        code = parts[1]
-        svc = parts[2]
-        icon = parts[3]
-        bot.answer_callback_query(call.id, "🚀 جاري تجميع الأرقام الحصرية الحية من السيرفرات المفتوحة...")
-        
-        slug = "usa"
-        for k, v in COUNTRIES_DATA.items():
-            if v["code"] == code:
-                slug = v["slug"]
-                break
-                
-        nums = fetch_all_sources_fast(code, slug)
-        
-        if nums:
-            markup = InlineKeyboardMarkup(row_width=2)
-            for n in nums:
-                markup.add(InlineKeyboardButton(f"{icon} {n}", callback_data=f"fotp_{n}_{svc}"))
-            markup.add(InlineKeyboardButton("🔙 عودة لقائمة الدول", callback_data=f"fsvc_{svc}_{icon}"))
-            
-            result_text = (
-                f"✅ **تم اقتناص {len(nums)} أرقام مجانية حية لـ {svc.upper()}:**\n\n"
-                "📋 **طريقة التفعيل:** اضغط على زر الرقم المطلوب، ليقوم الخادم بمراقبة وصول الكود وفحصه فوراً بشكل تلقائي وآمن!"
-            )
-            bot.edit_message_text(result_text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
-        else:
-            bot.answer_callback_query(call.id, "❌ المواقع في حالة صيانة مؤقتة لهذه الدولة، يرجى تجربة دولة أخرى فوراً.", show_alert=True)
-
-    elif call.data.startswith("fotp_"):
-        _, target_phone, target_svc = call.data.split("_")
-        bot.answer_callback_query(call.id, "📡 جاري مراقبة السيرفرات وقراءة الرسائل المستلمة حديثاً...")
-        
-        time.sleep(2)
-        dummy_free_otp = "482015"  
-        secure_free_otp = dummy_free_otp[:-2] + ".."
-        
-        try:
-            bot.send_message(CHANNEL_LOG_ID, f"🌐 **كود تفعيل مجاني مستخرج بالكامل:**\n\n📞 الرقم: `{target_phone}`\n📱 الخدمة: `{target_svc.upper()}`\n🔑 الكود كاملاً: `{dummy_free_otp}`")
-        except:
-            pass
-            
-        free_otp_box = (
-            f"📢 **وصل كود التفعيل المجاني للرقم المختبر:**\n\n"
-            f"📞 الرقم: `{target_phone}`\n"
-            f"🔑 الكود المحمي: `{secure_free_otp}`\n\n"
-            f"⚠️ **تنبيه:** لحمايتك ومنع سحب الأرقام عشوائياً، تم وضع نقاط بدلاً من آخر خانتين في البوت المفتوح. للحصول على الكود كاملاً الآن ادخل قناة البوت الرسمية: {CHANNEL_LOG_ID}"
-        )
-        bot.send_message(call.message.chat.id, free_otp_box, parse_mode="Markdown")
+            bot.send_message(call.message.chat.id, f"❌ خطأ في الاتصال بالشبكة: {e}")
 
     elif call.data == "my_account":
         account_text = (
             "💎 **لوحة البيانات الشخصية للمشترك:**\n\n"
             f"🆔 **معرف التليجرام الخاص بك:** `{call.from_user.id}`\n"
             f"💰 **رصيدك الحالي في البوت:** `0.00 $`\n"
-            f"🟢 **حالة الاتصال بالخادم الرئيسي:** آمن ومستقر جداً"
+            f"🟢 **حالة الاتصال بالخادم الرئيسي:** آمن ومستقر ونفاث 100%"
         )
         markup = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 عودة للقائمة", callback_data="back_home"))
         bot.edit_message_text(account_text, call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
@@ -473,20 +349,20 @@ def handle_queries(call):
         )
         admin_panel_text = (
             "⚙️ **لوحة التحكم الشاملة لمالك البوت الأصلي:**\n\n"
-            f"📊 **إجمالي الأعضاء والمشتركين الفعليين داخل البوت حالياً:**\n"
-            f"👥 `{count}` **مشترك مسجل في قاعدة البيانات الحية.**\n\n"
-            "🚀 حالة الخادم: متصل بكفاءة 100% والمحرك النفاث يعمل بأقصى طاقته."
+            f"📊 **إجمالي الأعضاء والمشتركين داخل قاعدة البيانات:**\n"
+            f"👥 `{count}` **مشترك مسجل فعلياً.**\n\n"
+            "🚀 حالة الخادم: فائق الاستقرار، مخصص للأرقام المدفوعة الحصرية فقط بنجاح."
         )
         bot.edit_message_text(admin_panel_text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
-# --- 7. INITIALIZE ---
+# --- 6. INITIALIZE ---
 if __name__ == "__main__":
     keep_alive()
     
-    # ⚡ إقلاع فوري وآمن لدالة الفحص الحية والمنفصلة في الخلفية 
-    Thread(target=background_country_checker, daemon=True).start()
+    # ⚡ تشغيل فاحص المخزون الذكي للبوابة في الخلفية فور الإقلاع
+    Thread(target=background_api_checker, daemon=True).start()
     
-    print("Bot engine deployed with Live Anti-Block Country Filtering.")
+    print("Premium Bot engine deployed flawlessly with dynamic stock filtering.")
     while True:
         try:
             bot.infinity_polling(timeout=20, long_polling_timeout=10)
