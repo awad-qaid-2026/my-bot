@@ -3,7 +3,7 @@ import os
 import time
 import re
 from threading import Thread
-import concurrent.futures  
+import concurrent.futures  # محرك التسريع المتوازي النفاث
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import requests
@@ -24,7 +24,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "⚡ Al-Moqana Smart Anti-Block Filtering Server is Active! ⚡"
+    return "⚡ Al-Moqana Hyper-Speed Auto-Filtering Server is Active! ⚡"
 
 def run():
     port = int(os.environ.get("PORT", 8080))
@@ -48,7 +48,7 @@ def keep_alive():
 API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
 API_5SIM_KEY = 'ضع_مفتاح_الـ_API_الخاص_بموقع_5sim_هنا' 
 ADMIN_ID = 8388141188 
-CHANNEL_LOG_ID = "@Awad_Numbers_Bot"  
+CHANNEL_LOG_ID = "@Awad_Numbers_Bot"  # معرف قناتك الرسمية
 
 bot = telebot.TeleBot(API_TOKEN)
 HEADERS_5SIM = {
@@ -76,6 +76,7 @@ SERVICES_PAID = {
     "instagram": {"name": "📸 Instagram / انستغرام", "code": "instagram"}
 }
 
+# الموسوعة الشاملة للدول المدعومة
 COUNTRIES_DATA = {
     "yemen": {"name": "🇾🇪 Yemen / اليمن", "slug": "yemen", "code": "967"},
     "saudiarabia": {"name": "🇸🇦 Saudi Arabia / السعودية", "slug": "saudi-arabia", "code": "966"},
@@ -106,13 +107,8 @@ COUNTRIES_DATA = {
     "india": {"name": "🇮🇳 India / الهند", "slug": "india", "code": "91"}
 }
 
-# 🔒 قواميس الفلترة الحية المنفصلة والمستقلة لكل تطبيق لمنع اختفاء الأزرار بشكل كامل
-ACTIVE_FREE_MAP = {
-    "whatsapp": [],
-    "telegram": [],
-    "facebook": [],
-    "instagram": []
-}
+# متغيّر ديناميكي لحفظ الدول الشغالة التي تحتوي على أرقام مستخرجة فعلياً لحماية الأزرار
+ACTIVE_FREE_COUNTRIES = []
 
 # --- 4. HELPERS ---
 def save_user(user_id):
@@ -155,12 +151,12 @@ def check_spam(user_id):
 # --- 5. 🚀 HYPER MULTI-SOURCE SCRAPER & LIVE VALIDATOR ---
 def scrape_single_source(url, code):
     nums = []
-    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'}
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
     try:
-        r = requests.get(url, headers=headers, timeout=4)
+        r = requests.get(url, headers=headers, timeout=3)
         if r.status_code == 200:
             soup = BeautifulSoup(r.text, 'html.parser')
-            for element in soup.find_all(['h3', 'h4', 'a', 'span', 'p', 'td', 'div']):
+            for element in soup.find_all(['h3', 'h4', 'a', 'span', 'p', 'td']):
                 txt = element.text.strip().replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
                 if txt.startswith('+') and txt[1:].startswith(code):
                     clean_num = re.sub(r'[^\d+]', '', txt)
@@ -188,39 +184,35 @@ def fetch_all_sources_fast(code, slug):
     ]
     
     all_numbers = []
-    # تقليل عدد العمال المتزامنين قليلاً لتفادي كشف السيرفر وحظره من المواقع الكبرى
-    with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
         futures = [executor.submit(scrape_single_source, url, code) for url in sources]
         for future in concurrent.futures.as_completed(futures):
             all_numbers.extend(future.result())
             
     return list(set(all_numbers))[:30]
 
-# 🔄 دالة الفحص الخلفي المتطورة مع حماية منع الحظر (Anti-Block) وفلترة منفصلة تماماً لكل خدمة
+# 🔄 دالة الفحص الخلفي المستمر: تفحص المواقع كل 5 دقائق وتخزن الدول الشغالة فقط وتلغي المعطلة!
 def background_country_checker():
-    global ACTIVE_FREE_MAP
+    global ACTIVE_FREE_COUNTRIES
     while True:
-        print("🔍 [نظام حماية المقنع] جاري فحص وتحديث قنوات الأرقام المجانية بحذر لمنع الحظر...")
+        print("🔍 [نظام الفلترة الذكي] جاري فحص وتحديث قائمة الدول الشغالة الآن...")
+        valid_countries = []
         
-        for app_key in ACTIVE_FREE_MAP.keys():
-            valid_countries = []
-            
-            for k, v in COUNTRIES_DATA.items():
+        # الفحص المتوازي السريع لجميع الدول دفعة واحدة لمعرفة أي دولة تحتوي على أرقام حية
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+            future_to_country = {executor.submit(fetch_all_sources_fast, v["code"], v["slug"]): k for k, v in COUNTRIES_DATA.items()}
+            for future in concurrent.futures.as_completed(future_to_country):
+                country_key = future_to_country[future]
                 try:
-                    res_nums = fetch_all_sources_fast(v["code"], v["slug"])
-                    if len(res_nums) > 0:
-                        valid_countries.append(k)
-                    # 🛡️ تأخير ذكي بمقدار نصف ثانية بين كل دولة وأخرى لخداع خوارزميات الحظر في المواقع
-                    time.sleep(0.5)
+                    res_nums = future.result()
+                    if len(res_nums) > 0:  # إذا وجدنا أرقام حية فعلاً لهذه الدولة
+                        valid_countries.append(country_key)
                 except:
                     pass
-            
-            ACTIVE_FREE_MAP[app_key] = valid_countries
-            print(f"✅ تحديث حي لقسم [{app_key}]: الدول النشطة حالياً هي -> {valid_countries}")
-            time.sleep(2)  # فصل زمني بين التطبيقات
-            
-        print("💤 اكتملت دورة الفحص الشاملة! سيتم إعادة الفحص الذكي بعد 3 دقائق.")
-        time.sleep(180) 
+                    
+        ACTIVE_FREE_COUNTRIES = valid_countries
+        print(f"✅ تم تحديث الدول الشغالة والممتلئة بالأرقام تلقائياً: {ACTIVE_FREE_COUNTRIES}")
+        time.sleep(300)  # إعادة الفحص والفلترة التلقائية كل 5 دقائق
 
 # --- 6. INTERFACE AND HANDLERS ---
 def show_main_menu(chat_id):
@@ -385,30 +377,28 @@ def handle_queries(call):
         _, name, icon = call.data.split("_")
         markup = InlineKeyboardMarkup(row_width=2)
         
-        # 🛡️ فلترة حية حقيقية ومنفصلة تماماً بناءً على اسم التطبيق المحدد لمنع الأخطاء والتعليق
+        # 🛡️ فلترة حية للأزرار: لا يظهر زر الدولة إلا إذا كانت تحتوي على أرقام جاهزة ومفحوصة بنجاح
         btns = []
-        allowed_list = ACTIVE_FREE_MAP.get(name, [])
-        
         for k, v in COUNTRIES_DATA.items():
-            if k in allowed_list:  
+            if k in ACTIVE_FREE_COUNTRIES:  # التحقق من أن الدولة شغالة بالكامل من دالة الفحص الخلفي
                 btns.append(InlineKeyboardButton(v["name"], callback_data=f"fget_{v['code']}_{name}_{icon}"))
                 
         if btns:
             markup.add(*btns)
             markup.add(InlineKeyboardButton("🔙 عودة للقسم", callback_data="section_free"))
-            bot.edit_message_text(f"{icon} **تفعيل خدمات {name.upper()} المجانية**\n\n🌍 اختر الدولة لبدء كشط وجمع الأرقام الحية الجاهزة للاستخدام في نفس الثانية:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+            bot.edit_message_text(f"{icon} **تفعيل خدمات {name} المجانية**\n\n🌍 اختر الدولة لبدء كشط وجمع الأرقام الحية الجاهزة للاستخدام في نفس الثانية:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
         else:
-            # زر تحديث مخصص يتيح للمستخدمين إعادة تهيئة السحب دون مشاكل
-            markup.add(InlineKeyboardButton("🔄 فحص وتحديث السيرفرات العالمية 🌐", callback_data=f"fsvc_{name}_{icon}"))
+            # رسالة في حال كانت السيرفرات العالمية تقوم بتحديثات جارية
+            markup.add(InlineKeyboardButton("🔄 تحديث القائمة المفلترة", callback_data=f"fsvc_{name}_{icon}"))
             markup.add(InlineKeyboardButton("🔙 عودة للقسم", callback_data="section_free"))
-            bot.edit_message_text(f"⏳ **جاري تنظيف وجلب أرقام جديدة من السيرفرات لخدمة {name.upper()} حالياً...**\n\nلتفادي حظر المواقع، يرجى الانتظار دقيقة ثم الضغط على زر التحديث أدناه لحصد الأرقام المفتوحة فوراً.", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+            bot.edit_message_text(f"⏳ **جاري جلب وتجهيز أرقام جديدة من المواقع حالياً...**\n\nيرجى الانتظار دقيقة واحدة ثم الضغط على زر التحديث أدناه لحصد الأرقام الصالحة فوراً.", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data.startswith("fget_"):
         parts = call.data.split("_")
         code = parts[1]
         svc = parts[2]
         icon = parts[3]
-        bot.answer_callback_query(call.id, "🚀 جاري تجميع الأرقام الحصرية الحية من السيرفرات المفتوحة...")
+        bot.answer_callback_query(call.id, "🚀 جاري عرض الأرقام الصالحة والمفحوصة من السيرفرات...")
         
         slug = "usa"
         for k, v in COUNTRIES_DATA.items():
@@ -425,12 +415,12 @@ def handle_queries(call):
             markup.add(InlineKeyboardButton("🔙 عودة لقائمة الدول", callback_data=f"fsvc_{svc}_{icon}"))
             
             result_text = (
-                f"✅ **تم اقتناص {len(nums)} أرقام مجانية حية لـ {svc.upper()}:**\n\n"
+                f"✅ **تم اقتناص {len(nums)} أرقام مجانية حية لـ {svc}:**\n\n"
                 "📋 **طريقة التفعيل:** اضغط على زر الرقم المطلوب، ليقوم الخادم بمراقبة وصول الكود وفحصه فوراً بشكل تلقائي وآمن!"
             )
             bot.edit_message_text(result_text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
         else:
-            bot.answer_callback_query(call.id, "❌ المواقع في حالة صيانة مؤقتة لهذه الدولة، يرجى تجربة دولة أخرى فوراً.", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ المواقع ممتلئة حالياً لهذه الدولة، يرجى تجربة دولة أخرى فوراً.", show_alert=True)
 
     elif call.data.startswith("fotp_"):
         _, target_phone, target_svc = call.data.split("_")
@@ -483,10 +473,10 @@ def handle_queries(call):
 if __name__ == "__main__":
     keep_alive()
     
-    # ⚡ إقلاع فوري وآمن لدالة الفحص الحية والمنفصلة في الخلفية 
+    # ⚡ تشغيل دالة الفحص الذكي والفلترة الحية في خلفية النظام فور الإقلاع
     Thread(target=background_country_checker, daemon=True).start()
     
-    print("Bot engine deployed with Live Anti-Block Country Filtering.")
+    print("Bot engine deployed with Live Country Filtering and Auto-Scraper.")
     while True:
         try:
             bot.infinity_polling(timeout=20, long_polling_timeout=10)
