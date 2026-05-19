@@ -92,7 +92,7 @@ COUNTRIES_DATA = {
 
 # --- 4. HELPERS (PRIVACY MASKING) ---
 def mask_phone(phone_str):
-    """إخفاء آخر 3 أرقام من الرقم"""
+    """إخفاء آخر 3 أرقام من الرقم واستبدالها بـ ***"""
     if not phone_str: return ""
     phone_str = str(phone_str).strip()
     if len(phone_str) > 3:
@@ -100,7 +100,7 @@ def mask_phone(phone_str):
     return phone_str + "***"
 
 def mask_code(code_str):
-    """إخفاء آخر حرفين/رقمين من كود التفعيل"""
+    """إخفاء آخر حرفين/رقمين من الكود واستبدالها بـ **"""
     if not code_str: return ""
     code_str = str(code_str).strip()
     if len(code_str) > 2:
@@ -298,7 +298,7 @@ def handle_queries(call):
             except: pass
             show_main_menu(call.message.chat.id)
         else:
-            bot.answer_callback_query(call.id, "❌ لم تشترك في جميع القنوات بعد!", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ لم تشترك in جميع القنوات بعد!", show_alert=True)
 
     elif call.data == "back_home":
         try: bot.delete_message(call.message.chat.id, call.message.message_id)
@@ -347,7 +347,7 @@ def handle_queries(call):
                 num_id, phone, price = data.get("id"), data.get("phone"), data.get("price", 0)
                 final_price = round(price + PROFIT_MARGIN, 2)
                 
-                # إرسال الرقم كامل بدون إخفاء للمستخدم في الشات الخاص به فقط
+                # يرسل للمستخدم بالخاص كامل دون إخفاء
                 success_box = (
                     "🎉 **تم سحب الرقم المدفوع بنجاح!**\n\n"
                     f"📱 **التطبيق:** `{target_app.upper()}`\n"
@@ -364,14 +364,14 @@ def handle_queries(call):
                     if check_res.get("sms"):
                         sms_code = str(check_res["sms"][0].get("code"))
                         
-                        # إرسال للقناة مع تفعيل نظام الإخفاء التام للأمان 
+                        # يرسل للقناة مخفي ومحمي تماماً من السرقة أو المراقبة
                         try:
                             masked_p = mask_phone(phone)
                             masked_c = mask_code(sms_code)
                             bot.send_message(CHANNEL_LOG_ID, f"🔥 **تفعيل مدفوع جديد:**\n📞 الرقم: `{masked_p}`\n📱 الخدمة: `{target_app.upper()}`\n🔑 الكود: `{masked_c}`")
                         except: pass
                         
-                        # إرسال للمستخدم في محادثة البوت بدون أي إخفاء
+                        # يرسل للمستخدم في محادثاته الخاصة كامل وبدون اخفاء
                         return bot.send_message(call.message.chat.id, f"🔥 **وصل كود التفعيل الآن:**\n\n📞 الرقم: `{phone}`\n🔑 كود الـ OTP: `{sms_code}`", parse_mode="Markdown")
                 bot.send_message(call.message.chat.id, "❌ انتهى الوقت ولم يصل كود. تم إلغاء الطلب مجاناً.")
             else:
