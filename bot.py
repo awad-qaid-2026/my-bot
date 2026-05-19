@@ -9,6 +9,7 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask
+from urllib.parse import quote  
 
 # --- 1. SYSTEM ENCODING FORCE ---
 try:
@@ -107,8 +108,13 @@ COUNTRIES_DATA = {
     "india": {"name": "🇮🇳 India / الهند", "slug": "india", "code": "91"}
 }
 
-# متغيّر ديناميكي لحفظ الدول الشغالة التي تحتوي على أرقام مستخرجة فعلياً لحماية الأزرار
-ACTIVE_FREE_COUNTRIES = []
+# قائمة الدول الافتراضية المسموحة للقسم المجاني مباشرة
+ACTIVE_FREE_MAP = {
+    "whatsapp": ["usa", "uk", "germany", "france", "sweden", "yemen", "egypt"],
+    "telegram": ["usa", "uk", "france", "russia", "sweden", "iraq"],
+    "facebook": ["usa", "uk", "iraq", "egypt", "morocco"],
+    "instagram": ["usa", "uk", "germany", "france"]
+}
 
 # --- 4. HELPERS ---
 def save_user(user_id):
@@ -180,7 +186,18 @@ def fetch_all_sources_fast(code, slug):
         f"https://freephonenums.com/{slug}",
         f"https://online-sms.org/en/countries/{slug}",
         f"https://sms-online.co/receive-free-sms/{slug}",
-        f"https://receiveasms.com/country/{slug}"
+        f"https://receiveasms.com/country/{slug}",
+        f"https://www.smsreceivefree.com/country/{slug}",
+        f"https://receive-sms-free.cc/Free-{slug}-Phone-Number/",
+        f"https://smstome.com/country/{slug}",
+        f"https://temp-number.com/countries/{slug}",
+        f"https://www.freeonlinephone.org/countries/{slug}",
+        f"https://receive-sms-online.info/country/{slug}",
+        f"https://7sim.org/free-phone-number-{slug}",
+        f"https://getfreesmsnumber.com/virtual-phone/{slug}",
+        f"https://quackr.io/temporary-numbers/{slug}",
+        f"https://smsnator.online/country/{slug}",
+        f"https://simor.org/country/{slug}"
     ]
     
     all_numbers = []
@@ -190,29 +207,6 @@ def fetch_all_sources_fast(code, slug):
             all_numbers.extend(future.result())
             
     return list(set(all_numbers))[:30]
-
-# 🔄 دالة الفحص الخلفي المستمر: تفحص المواقع كل 5 دقائق وتخزن الدول الشغالة فقط وتلغي المعطلة!
-def background_country_checker():
-    global ACTIVE_FREE_COUNTRIES
-    while True:
-        print("🔍 [نظام الفلترة الذكي] جاري فحص وتحديث قائمة الدول الشغالة الآن...")
-        valid_countries = []
-        
-        # الفحص المتوازي السريع لجميع الدول دفعة واحدة لمعرفة أي دولة تحتوي على أرقام حية
-        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-            future_to_country = {executor.submit(fetch_all_sources_fast, v["code"], v["slug"]): k for k, v in COUNTRIES_DATA.items()}
-            for future in concurrent.futures.as_completed(future_to_country):
-                country_key = future_to_country[future]
-                try:
-                    res_nums = future.result()
-                    if len(res_nums) > 0:  # إذا وجدنا أرقام حية فعلاً لهذه الدولة
-                        valid_countries.append(country_key)
-                except:
-                    pass
-                    
-        ACTIVE_FREE_COUNTRIES = valid_countries
-        print(f"✅ تم تحديث الدول الشغالة والممتلئة بالأرقام تلقائياً: {ACTIVE_FREE_COUNTRIES}")
-        time.sleep(300)  # إعادة الفحص والفلترة التلقائية كل 5 دقائق
 
 # --- 6. INTERFACE AND HANDLERS ---
 def show_main_menu(chat_id):
@@ -230,7 +224,7 @@ def show_main_menu(chat_id):
     
     welcome_text = (
         "👑 **مرحباً بك في نظام المقنع الفائق لإدارة وتفعيل الأرقام**\n\n"
-        "✨ `المحرك النفاث نشط الآن ومزود بنظام الفلترة والتحقق التلقائي لعام 2026`\n"
+        "✨ `المحرك النفاث نشط الآن وجاهز للعمل لعام 2026`\n"
         "🎯 *تستطيع الآن اقتناص أرقام مجانية أو مدفوعة لتفعيل الواتساب، التليجرام، الفيسبوك، والانستغرام بثوانٍ.*\n\n"
         "👇 اختر القسم الذي تريده من الأزرار المنسقة بالأسفل:"
     )
@@ -325,7 +319,7 @@ def handle_queries(call):
                     f"🌍 **دولة الرقم:** `{target_country.upper()}`\n"
                     f"💵 **التكلفة الإجمالية:** `{final_price} $`\n\n"
                     f"📞 **الرقم المخصص لك (اضغط عليه للنسخ):**\n`{phone}`\n\n"
-                    "⚠️ **خطوتك التالية:** انسخ الرقم وضعه في التطبيق المطلوب واطلب الكود، ثم انتظر هنا.. السيرفر يفحص وصول الكود تلقائياً."
+                    "⚠️ **خطوتك التالية:** انسخ الرقم وضعه in التطبيق المطلوب واطلب الكود، ثم انتظر هنا.. السيرفر يفحص وصول الكود تلقائياً."
                 )
                 bot.send_message(call.message.chat.id, success_box, parse_mode="Markdown")
                 
@@ -368,30 +362,27 @@ def handle_queries(call):
         
         free_text = (
             "🌐 **بوابة السحب المجاني السريع والمحدثة بالخيوط المتوازية**\n\n"
-            "✨ يقوم المحرك الآن بعمل فحص متزامن وفوري لـ 15 موقع عالمي كبرى لاقتناص الأرقام المفتوحة مجاناً وبأقصى سرعة جلب نفاثة.\n"
+            "✨ يقوم المحرك الآن بعمل فحص متزامن وفوري لـ 22 موقع عالمي كبرى لاقتناص الأرقام المفتوحة مجاناً وبأقصى سرعة جلب نفاثة.\n"
             "👇 اختر الخدمة التي تريد البحث عن أرقام نشطة لها:"
         )
         bot.edit_message_text(free_text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data.startswith("fsvc_"):
-        _, name, icon = call.data.split("_")
+        parts = call.data.split("_")
+        name = parts[1]
+        icon = parts[2]
         markup = InlineKeyboardMarkup(row_width=2)
         
-        # 🛡️ فلترة حية للأزرار: لا يظهر زر الدولة إلا إذا كانت تحتوي على أرقام جاهزة ومفحوصة بنجاح
+        # الأزرار تعمل مباشرة دون فحص خلفي معقد
+        allowed_list = ACTIVE_FREE_MAP.get(name, [])
         btns = []
         for k, v in COUNTRIES_DATA.items():
-            if k in ACTIVE_FREE_COUNTRIES:  # التحقق من أن الدولة شغالة بالكامل من دالة الفحص الخلفي
+            if k in allowed_list:  
                 btns.append(InlineKeyboardButton(v["name"], callback_data=f"fget_{v['code']}_{name}_{icon}"))
                 
-        if btns:
-            markup.add(*btns)
-            markup.add(InlineKeyboardButton("🔙 عودة للقسم", callback_data="section_free"))
-            bot.edit_message_text(f"{icon} **تفعيل خدمات {name} المجانية**\n\n🌍 اختر الدولة لبدء كشط وجمع الأرقام الحية الجاهزة للاستخدام في نفس الثانية:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
-        else:
-            # رسالة في حال كانت السيرفرات العالمية تقوم بتحديثات جارية
-            markup.add(InlineKeyboardButton("🔄 تحديث القائمة المفلترة", callback_data=f"fsvc_{name}_{icon}"))
-            markup.add(InlineKeyboardButton("🔙 عودة للقسم", callback_data="section_free"))
-            bot.edit_message_text(f"⏳ **جاري جلب وتجهيز أرقام جديدة من المواقع حالياً...**\n\nيرجى الانتظار دقيقة واحدة ثم الضغط على زر التحديث أدناه لحصد الأرقام الصالحة فوراً.", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+        markup.add(*btns)
+        markup.add(InlineKeyboardButton("🔙 عودة للقسم", callback_data="section_free"))
+        bot.edit_message_text(f"{icon} **تفعيل خدمات {name} المجانية**\n\n🌍 اختر الدولة لبدء كشط وجمع الأرقام الحية الجاهزة للاستخدام في نفس الثانية:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data.startswith("fget_"):
         parts = call.data.split("_")
@@ -439,7 +430,7 @@ def handle_queries(call):
             f"📢 **وصل كود التفعيل المجاني للرقم المختبر:**\n\n"
             f"📞 الرقم: `{target_phone}`\n"
             f"🔑 الكود المحمي: `{secure_free_otp}`\n\n"
-            f"⚠️ **تنبيه:** لحمايتك ومنع سحب الأرقام عشوائياً، تم وضع نقاط بدلاً من آخر خانتين في البوت المفتوح. للحصول على الكود كاملاً الآن ادخل قناة البوت الرسمية: {CHANNEL_LOG_ID}"
+            f"⚠️ **تنبيه:** لحمايتك ومنع سحب الأرقام عشوائياً، تم وضع نقاط بدلاف من آخر خانتين في البوت المفتوح. للحصول على الكود كاملاً الآن ادخل قناة البوت الرسمية: {CHANNEL_LOG_ID}"
         )
         bot.send_message(call.message.chat.id, free_otp_box, parse_mode="Markdown")
 
@@ -472,11 +463,7 @@ def handle_queries(call):
 # --- 7. INITIALIZE ---
 if __name__ == "__main__":
     keep_alive()
-    
-    # ⚡ تشغيل دالة الفحص الذكي والفلترة الحية في خلفية النظام فور الإقلاع
-    Thread(target=background_country_checker, daemon=True).start()
-    
-    print("Bot engine deployed with Live Country Filtering and Auto-Scraper.")
+    print("Bot engine deployed without background country checker loop.")
     while True:
         try:
             bot.infinity_polling(timeout=20, long_polling_timeout=10)
