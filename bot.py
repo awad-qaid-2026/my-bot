@@ -9,6 +9,7 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeybo
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask
+import random
 
 # --- 1. SYSTEM ENCODING FORCE ---
 try:
@@ -34,7 +35,6 @@ def self_ping():
     time.sleep(60)
     while True:
         try:
-            # قم بتغيير الرابط أدناه إلى رابط الـ Render الخاص بك لضمان بقاء السيرفر مستيقظاً
             requests.get("https://al-moqana.onrender.com", timeout=10)
             print("🟢 Server self-ping successfully completed.")
         except Exception as e:
@@ -47,7 +47,7 @@ def keep_alive():
 
 # --- 3. BOT CONFIGURATIONS & KEYS ---
 API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
-API_5SIM_KEY = 'ضع_مفتاح_الـ_API_الخاص_بموقع_5sim_هنا' # يوضع المفتاح هنا لتفعيل السحب المدفوع
+API_5SIM_KEY = 'ضع_مفتاح_الـ_API_الخاص_بموقع_5sim_هنا' # ضع مفتاحك هنا لضمان عمل السحب المدفوع
 ADMIN_ID = 8388141188 
 CHANNEL_LOG_ID = "@Awad_Numbers_Bot"  
 
@@ -77,7 +77,6 @@ SERVICES_DATA = {
     "instagram": {"name": "📸 Instagram / انستغرام", "code": "instagram"}
 }
 
-# تم تنظيف وتنسيق قاموس الدول لمنع خطأ الـ latin-1 codec نهائياً عند إرسال البيانات للخوادم العالمية
 COUNTRIES_DATA = {
     "yemen": {"name": "Yemen 🇾🇪", "slug": "yemen", "code": "967"},
     "iraq": {"name": "Iraq 🇮🇶", "slug": "iraq", "code": "964"},
@@ -94,13 +93,16 @@ COUNTRIES_DATA = {
     "uk": {"name": "UK 🇬🇧", "slug": "united-kingdom", "code": "44"}
 }
 
-# نظام الفلترة الحية المستقلة لمنع اختفاء الأزرار التفاعلية
 ACTIVE_FREE_MAP = {
     "whatsapp": ["yemen", "iraq", "egypt", "ukraine", "usa"],
     "telegram": ["iraq", "palestine", "syria", "ukraine", "usa"],
     "facebook": ["yemen", "iraq", "ghana", "nigeria", "usa", "ukraine"],
     "instagram": ["egypt", "tunisia", "morocco", "usa"]
 }
+
+# قوائم أسماء لتلبية متطلبات الأدوات الاحترافية في لوحة المفاتيح
+EGYPTIAN_NAMES = ["أحمد محمود", "محمد مصطفى", "كريم عبد العزيز", "عمرو دياب", "يوسف الشريف", "عمر الخطيب", "طارق حامد", "سامح حسين"]
+FOREIGN_NAMES = ["John Smith", "Michael Jordan", "David Beckham", "James Rodriguez", "Robert Downey", "William Garcia", "Oliver Martinez"]
 
 # --- 4. HELPERS ---
 def save_user(user_id):
@@ -139,6 +141,29 @@ def check_spam(user_id):
     else:
         user_last_action[user_id] = (current_time, 1)
     return False
+
+# دالة مخصصة لإدارة الإذاعة الفائقة لجميع المستخدمين بمرونة عالية دون تعليق السيرفر
+def send_broadcast_engine(message_to_send):
+    if not os.path.exists("users.txt"): return
+    with open("users.txt", "r") as f:
+        users = [line.strip() for line in f.read().splitlines() if line.strip()]
+    
+    success, failed = 0, 0
+    for uid in users:
+        try:
+            if message_to_send.reply_to_message:
+                bot.copy_message(chat_id=int(uid), from_chat_id=message_to_send.chat.id, message_id=message_to_send.reply_to_message.message_id)
+            else:
+                text_content = message_to_send.text.replace("/broadcast", "").strip()
+                bot.send_message(int(uid), text_content)
+            success += 1
+            time.sleep(0.05) # حماية من الحظر المؤقت من التليجرام أثناء الإرسال الجماعي
+        except:
+            failed += 1
+    
+    try:
+        bot.send_message(ADMIN_ID, f"📢 **اكتملت عملية الإذاعة بنجاح!**\n\n✅ تم الإرسال إلى: `{success}` مستخدم.\n❌ فشل الإرسال لـ: `{failed}` مستخدم (قاموا بحظر البوت).")
+    except: pass
 
 # --- 5. 🚀 REAL-TIME LIVE CODES & NUMBER SCRAPER ENGINE ---
 def scrape_single_source(url, code):
@@ -201,7 +226,7 @@ def send_reply_main_keyboard(chat_id):
     markup.add(KeyboardButton("Foreign Name 🌐"), KeyboardButton("Egyptian Name 🇪🇬"))
     markup.add(KeyboardButton("Password 🔑"), KeyboardButton("2FA Code 🔒"), KeyboardButton("Extract ID 🆔"))
     
-    bot.send_message(chat_id, "⚙️ **Use the keyboard below to choose tools.**", reply_markup=markup, parse_mode="Markdown")
+    bot.send_message(chat_id, "⚙️ **استخدم لوحة المفاتيح بالأسفل لاختيار الأدوات المساعدة المتقدمة.**", reply_markup=markup, parse_mode="Markdown")
 
 def show_main_inline_menu(chat_id):
     markup = InlineKeyboardMarkup(row_width=1)
@@ -240,16 +265,35 @@ def start(message):
     send_reply_main_keyboard(message.chat.id)
     show_main_inline_menu(message.chat.id)
 
+# استقبال ومعالجة أوامر الإذاعة الفائقة لمالك البوت حصراً
+@bot.message_handler(commands=['broadcast'])
+def handle_broadcast_command(message):
+    if message.from_user.id != ADMIN_ID:
+        return bot.reply_to(message, "❌ هذا الأمر مخصص فقط لمطور السيرفر الرئيسي.")
+    
+    if not message.reply_to_message and len(message.text.split()) == 1:
+        return bot.reply_to(message, "⚠️ **طريقة الاستخدام الصحيحة:**\nأرسل الأمر متبوعًا بالنص مثل: `/broadcast رسالتك هنا` أو قم بعمل رد (Reply) على الصورة أو المنشور الذي تريد إذاعته للجميع واكتب `/broadcast`")
+    
+    bot.reply_to(message, "⚡ `جاري بدء معالجة الإذاعة الفورية لجميع المشتركين حالياً...`")
+    Thread(target=send_broadcast_engine, args=(message,)).start()
+
 @bot.message_handler(func=lambda msg: True)
 def handle_reply_keyboards(message):
     if not is_subscribed(message.from_user.id): return start(message)
+    save_user(message.from_user.id)
     
     if message.text == "Countries 🌍" or message.text == "New Number 🔄":
         show_main_inline_menu(message.chat.id)
     elif message.text == "Extract ID 🆔":
         bot.send_message(message.chat.id, f"🆔 **Your Telegram ID:** `{message.from_user.id}`")
     elif message.text == "Password 🔑":
-        bot.send_message(message.chat.id, f"🔑 **Secure Password:** `Pass_{str(time.time())[:5]}_Secure`")
+        bot.send_message(message.chat.id, f"🔑 **Secure Password:** `Pass_{str(time.time())[:5].replace('.','')}_Secure`")
+    elif message.text == "2FA Code 🔒":
+        bot.send_message(message.chat.id, f"🔒 **رمز المصادقة الاحترافي المولد:** `{random.randint(100000, 999999)}`")
+    elif message.text == "Egyptian Name 🇪🇬":
+        bot.send_message(message.chat.id, f"👤 **الاسم المصري المقترح:** `{random.choice(EGYPTIAN_NAMES)}`")
+    elif message.text == "Foreign Name 🌐":
+        bot.send_message(message.chat.id, f"👤 **الاسم الأجنبي المقترح:** `{random.choice(FOREIGN_NAMES)}`")
     else:
         bot.send_message(message.chat.id, "💡 الرجاء اختيار أحد الأقسام من القائمة المرفقة بالأسفل.")
 
@@ -290,9 +334,9 @@ def handle_all_callbacks(call):
         _, _, target_app, target_country = call.data.split("_")
         bot.edit_message_text("📡 `جاري الاتصال ببوابة الـ API وجلب الرقم الحصري.. انتظر ثوانٍ..`", call.message.chat.id, call.message.message_id, parse_mode="Markdown")
         
-        # تحويل المتغيرات إلى أحرف إنجليزية صغيرة صافية لتلافي خطأ latin-1 تماماً
+        country_info = COUNTRIES_DATA.get(target_country, {})
+        clean_country = str(country_info.get("slug", target_country)).lower().strip()
         clean_app = str(target_app).lower().strip()
-        clean_country = str(target_country).lower().strip()
         
         url_order = f"https://5sim.net/v1/user/buy/activation/{clean_country}/any/{clean_app}"
         try:
@@ -309,18 +353,17 @@ def handle_all_callbacks(call):
                 )
                 bot.send_message(call.message.chat.id, success_box, parse_mode="Markdown")
                 
-                # فحص الكود بشكل حيوي ومستمر وإرساله للقناة بنفس التنسيق المطلوب تماماً
                 for _ in range(20):
                     time.sleep(12)
                     check_res = requests.get(f"https://5sim.net/v1/user/check/{num_id}", headers=HEADERS_5SIM).json()
                     if check_res.get("sms"):
                         sms_code = str(check_res["sms"][0].get("code"))
                         sms_text = str(check_res["sms"][0].get("text"))
-                        country_display = COUNTRIES_DATA.get(target_country, {}).get("name", target_country.upper())
+                        country_display = country_info.get("name", target_country.upper())
                         
                         channel_msg = (
                             "✨======================✨\n"
-                            f"✨ **Messga OTP Received** ✨\n"
+                            f"✨ **Message OTP Received** ✨\n"
                             f"⚙️ **Service:** {target_app.upper()}\n"
                             f"📠 **Number:** {phone[:5]}*****{phone[-4:]}\n"
                             f"🌍 **Country:** {country_display}\n\n"
@@ -328,16 +371,32 @@ def handle_all_callbacks(call):
                             f"# {sms_text}\n"
                             "✨======================✨"
                         )
-                        # إرسال الكود الكامل والتنسيقي المنسق مباشرة إلى القناة وإلى العميل
                         try: bot.send_message(CHANNEL_LOG_ID, channel_msg)
                         except: pass
                         return bot.send_message(call.message.chat.id, channel_msg)
                 
                 bot.send_message(call.message.chat.id, "❌ **انتهى وقت الفحص ولم يصل الكود، تم إلغاء العملية تلقائياً مجاناً.**")
             else:
-                bot.send_message(call.message.chat.id, "❌ **فشل جلب الرقم:** تأكد من إعداد مفتاح الـ API لـ 5sim بشكل سليم ومن شحن رصيد حسابك.")
+                allowed_countries = ACTIVE_FREE_MAP.get(target_app, list(COUNTRIES_DATA.keys()))
+                working_countries_names = [COUNTRIES_DATA[c]["name"] for c in allowed_countries if c in COUNTRIES_DATA]
+                countries_list_str = "\n• " + "\n• ".join(working_countries_names)
+                
+                error_fallback = (
+                    "❌ **فشل جلب الرقم من البوابة المدفوعة حالياً.**\n"
+                    "تأكد من شحن الحساب ووضع مفتاح 5sim سليم.\n\n"
+                    f"🌍 **الدول والخدمات المتاحة حالياً للعمل داخل البوت هي:**{countries_list_str}"
+                )
+                bot.send_message(call.message.chat.id, error_fallback)
         except Exception as e:
-            bot.send_message(call.message.chat.id, f"❌ خطأ تقني في الاتصال بالبوابة: {e}")
+            allowed_countries = ACTIVE_FREE_MAP.get(target_app, list(COUNTRIES_DATA.keys()))
+            working_countries_names = [COUNTRIES_DATA[c]["name"] for c in allowed_countries if c in COUNTRIES_DATA]
+            countries_list_str = "\n• " + "\n• ".join(working_countries_names)
+            
+            error_msg = (
+                f"❌ **خطأ تقني في الاتصال بالبوابة:** `{str(e)}`\n\n"
+                f"🌍 **الدول المتاحة والشغالة الآن هي:**{countries_list_str}"
+            )
+            bot.send_message(call.message.chat.id, error_msg)
 
     # === FREE PORTAL (MULTI-SOURCE CLUSTER) ===
     elif call.data == "section_free":
@@ -387,7 +446,7 @@ def handle_all_callbacks(call):
         if live_code:
             channel_msg = (
                 "✨======================✨\n"
-                f"✨ **Messga OTP Received** ✨\n"
+                f"✨ **Message OTP Received** ✨\n"
                 f"⚙️ **Service:** {target_app.upper()}\n"
                 f"📠 **Number:** {target_phone[:5]}*****{target_phone[-4:]}\n"
                 f"🌍 **Country:** {country_display}\n\n"
