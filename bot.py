@@ -5,7 +5,7 @@ import re
 from threading import Thread
 import concurrent.futures  
 import telebot
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask
@@ -25,7 +25,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "⚡ Al-Moqana Hyper-Speed Auto-Filtering Server is Active! ⚡"
+    return "⚡ Al-Moqana Hyper-Speed Server is Active! ⚡"
 
 def run():
     port = int(os.environ.get("PORT", 8080))
@@ -77,7 +77,6 @@ SERVICES_PAID = {
     "instagram": {"name": "📸 Instagram / انستغرام", "code": "instagram"}
 }
 
-# قائمة الدول المحددة والثابتة لضمان ظهور الأزرار دائماً
 COUNTRIES_DATA = {
     "yemen": {"name": "🇾🇪 Yemen / اليمن", "slug": "yemen", "code": "967"},
     "egypt": {"name": "🇪🇬 Egypt / مصر", "slug": "egypt", "code": "20"},
@@ -187,6 +186,7 @@ def show_main_menu(chat_id):
         "🎯 *تستطيع الآن اقتناص أرقام مجانية أو مدفوعة لتفعيل الواتساب، التليجرام، الفيسبوك، والانستغرام بثوانٍ.*\n\n"
         "👇 اختر القسم الذي تريده من الأسفل:"
     )
+    # نرسل ReplyKeyboardRemove لمسح الأزرار السفلية الكبيرة التي تظهر في الكيبورد فوراً!
     bot.send_message(chat_id, welcome_text, reply_markup=markup, parse_mode="Markdown")
 
 @bot.message_handler(commands=['start'])
@@ -198,6 +198,10 @@ def start(message):
             markup.add(InlineKeyboardButton(item["name"], url=item["url"]))
         markup.add(InlineKeyboardButton("✨ تم الاشتراك، دخول البوت ✅", callback_data="verify"))
         return bot.send_message(message.chat.id, "⚠️ **يجب عليك الاشتراك في قنوات البوت أولاً لتفعيله:**", reply_markup=markup, parse_mode="Markdown")
+    
+    # هنا نقوم بمسح الكيبورد الشفاف القديم من شاشة المستخدم نهائياً
+    remove_old_keyboard = ReplyKeyboardRemove()
+    bot.send_message(message.chat.id, "🔄 جاري تهيئة الواجهة وتنظيف الاختصارات القديمة...", reply_markup=remove_old_keyboard)
     show_main_menu(message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -298,7 +302,6 @@ def handle_queries(call):
         _, name, icon = call.data.split("_")
         markup = InlineKeyboardMarkup(row_width=2)
         
-        # الأزرار تظهر الآن دائماً وثابتة 100% دون فلاتر أو شروط حذف
         btns = []
         for k, v in COUNTRIES_DATA.items():
             btns.append(InlineKeyboardButton(v["name"], callback_data=f"fget_{v['code']}_{name}_{icon}"))
