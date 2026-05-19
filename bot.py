@@ -92,7 +92,6 @@ COUNTRIES_DATA = {
 
 # --- 4. HELPERS (PRIVACY MASKING) ---
 def mask_phone(phone_str):
-    """إخفاء آخر 3 أرقام من الرقم واستبدالها بـ ***"""
     if not phone_str: return ""
     phone_str = str(phone_str).strip()
     if len(phone_str) > 3:
@@ -100,7 +99,6 @@ def mask_phone(phone_str):
     return phone_str + "***"
 
 def mask_code(code_str):
-    """إخفاء آخر حرفين/رقمين من الكود واستبدالها بـ **"""
     if not code_str: return ""
     code_str = str(code_str).strip()
     if len(code_str) > 2:
@@ -278,7 +276,7 @@ def handle_reply_keyboard_buttons(message):
     elif text == "👨‍💻 تواصل مع المطور":
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton("💬 إرسال رسالة للمطور مباشرة", url=DEVELOPER_URL))
-        bot.send_message(message.chat.id, "👨‍💻 **يمكنك التواصل مع مطور ومغلق البوت عبر الرابط المباشر أدناه:**", reply_markup=markup, parse_mode="Markdown")
+        bot.send_message(message.chat.id, "👨‍💻 **يمكنك التواصل مع مطور الحساب عبر الرابط المباشر أدناه:**", reply_markup=markup, parse_mode="Markdown")
 
     elif text == "⚡ Admin Broadcast Panel ⚡":
         if message.from_user.id != ADMIN_ID:
@@ -298,7 +296,7 @@ def handle_queries(call):
             except: pass
             show_main_menu(call.message.chat.id)
         else:
-            bot.answer_callback_query(call.id, "❌ لم تشترك in جميع القنوات بعد!", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ لم تشترك في جميع القنوات بعد!", show_alert=True)
 
     elif call.data == "back_home":
         try: bot.delete_message(call.message.chat.id, call.message.message_id)
@@ -344,10 +342,15 @@ def handle_queries(call):
             res = requests.get(url_order, headers=HEADERS_5SIM, timeout=10)
             if res.status_code == 200:
                 data = res.json()
+                
+                # فحص ما إذا كان الموقع أرجع خطأ أم أرجع رقم بنجاح
+                if "id" not in data:
+                    error_msg = data.get("error", "لا توجد أرقام متاحة حالياً أو الرصيد غير كافٍ.")
+                    return bot.send_message(call.message.chat.id, f"❌ **فشل سحب الرقم من 5sim:**\nالسبب: `{error_msg}`")
+                
                 num_id, phone, price = data.get("id"), data.get("phone"), data.get("price", 0)
                 final_price = round(price + PROFIT_MARGIN, 2)
                 
-                # يرسل للمستخدم بالخاص كامل دون إخفاء
                 success_box = (
                     "🎉 **تم سحب الرقم المدفوع بنجاح!**\n\n"
                     f"📱 **التطبيق:** `{target_app.upper()}`\n"
@@ -360,24 +363,24 @@ def handle_queries(call):
                 
                 for _ in range(30):
                     time.sleep(10)
-                    check_res = requests.get(f"https://5sim.net/v1/user/check/{quote(str(num_id))}", headers=HEADERS_5SIM).json()
-                    if check_res.get("sms"):
-                        sms_code = str(check_res["sms"][0].get("code"))
-                        
-                        # يرسل للقناة مخفي ومحمي تماماً من السرقة أو المراقبة
-                        try:
-                            masked_p = mask_phone(phone)
-                            masked_c = mask_code(sms_code)
-                            bot.send_message(CHANNEL_LOG_ID, f"🔥 **تفعيل مدفوع جديد:**\n📞 الرقم: `{masked_p}`\n📱 الخدمة: `{target_app.upper()}`\n🔑 الكود: `{masked_c}`")
-                        except: pass
-                        
-                        # يرسل للمستخدم في محادثاته الخاصة كامل وبدون اخفاء
-                        return bot.send_message(call.message.chat.id, f"🔥 **وصل كود التفعيل الآن:**\n\n📞 الرقم: `{phone}`\n🔑 كود الـ OTP: `{sms_code}`", parse_mode="Markdown")
+                    try:
+                        check_res = requests.get(f"https://5sim.net/v1/user/check/{quote(str(num_id))}", headers=HEADERS_5SIM).json()
+                        if check_res.get("sms"):
+                            sms_code = str(check_res["sms"][0].get("code"))
+                            
+                            try:
+                                masked_p = mask_phone(phone)
+                                masked_c = mask_code(sms_code)
+                                bot.send_message(CHANNEL_LOG_ID, f"🔥 **تفعيل مدفوع جديد:**\n📞 الرقم: `{masked_p}`\n📱 الخدمة: `{target_app.upper()}`\n🔑 الكود: `{masked_c}`")
+                            except: pass
+                            
+                            return bot.send_message(call.message.chat.id, f"🔥 **وصل كود التفعيل الآن:**\n\n📞 الرقم: `{phone}`\n🔑 كود الـ OTP: `{sms_code}`", parse_mode="Markdown")
+                    except: pass
                 bot.send_message(call.message.chat.id, "❌ انتهى الوقت ولم يصل كود. تم إلغاء الطلب مجاناً.")
             else:
-                bot.send_message(call.message.chat.id, "❌ الأرقام ممتلئة أو السيرفر غير مشحون برصيد 5sim.")
+                bot.send_message(call.message.chat.id, "❌ فشل الاتصال بالموقع. تأكد من شحن حسابك في 5sim ووضع مفتاح الـ API الصحيح.")
         except Exception as e:
-            bot.send_message(call.message.chat.id, f"❌ خطأ في الاتصال: {e}")
+            bot.send_message(call.message.chat.id, f"❌ خطأ أثناء طلب الرقم: {e}")
 
     # === FREE SECTION ===
     elif call.data == "section_free":
@@ -433,21 +436,18 @@ def handle_queries(call):
         _, target_phone, target_svc = call.data.split("_")
         bot.answer_callback_query(call.id, "📡 جاري فحص الرسائل المستلمة حديثاً للرقم...")
         
-        # يرسل للمستخدم بالخاص كامل دون إخفاء
         copy_text = f"📋 **الرقم الذي اخترته (اضغط عليه للنسخ فوراً):**\n`{target_phone}`"
         bot.send_message(call.message.chat.id, copy_text, parse_mode="Markdown")
         
         time.sleep(2)
         dummy_free_otp = "551482"  
         
-        # يرسل للقناة مخفي ومحمي تماماً من السرقة أو المراقبة
         try:
             masked_p = mask_phone(target_phone)
             masked_c = mask_code(dummy_free_otp)
             bot.send_message(CHANNEL_LOG_ID, f"🌐 **كود تفعيل مجاني جديد:**\n\n📞 الرقم: `{masked_p}`\n📱 الخدمة: `{target_svc.upper()}`\n🔑 الكود: `{masked_c}`")
         except: pass
             
-        # يرسل للمستخدم في محادثاته الخاصة كامل وبدون اخفاء
         free_otp_box = (
             f"📢 **وصل كود التفعيل المجاني المستهدف:**\n\n"
             f"📞 الرقم: `{target_phone}`\n"
@@ -476,7 +476,7 @@ def handle_queries(call):
 # --- 9. INITIALIZE ---
 if __name__ == "__main__":
     keep_alive()
-    print("Bot engine is running matching your layout video perfectly!")
+    print("Bot engine is running smoothly with full error handling!")
     while True:
         try:
             bot.infinity_polling(timeout=20, long_polling_timeout=10)
