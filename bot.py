@@ -46,7 +46,8 @@ def keep_alive():
     Thread(target=self_ping).start()
 
 # --- 3. BOT CONFIGURATIONS & KEYS ---
-API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
+# تم تحديث التوكن هنا بناءً على الـ Revoke الجديد ليموت السيرفر القديم فوراً 🚀
+API_TOKEN = '8686242492:AAH9V_N0TWhP_06b_F40Y3vL9lKk7gNxZBo'
 API_5SIM_KEY = 'ضع_مفتاح_الـ_API_الخاص_بموقع_5sim_هنا' 
 ADMIN_ID = 8388141188 
 CHANNEL_LOG_ID = "@Awad_Numbers_Bot"  
@@ -60,7 +61,7 @@ HEADERS_5SIM = {
 PROFIT_MARGIN = 0.05
 DEVELOPER_URL = "https://t.me/awad3210"
 
-# هنا القنوات الرسمية الخاصة بك فقط (تم تنظيفها والتأكد منها)
+# القنوات الرسمية النظيفة الخاصة بك فقط
 CHANNELS = ['@Awad_Numbers_Bot', '@jzbznznx', '@sn6hdbdn19dndw'] 
 SUBSCRIPTION_LINKS = [
     {"name": "📢 قناة البوت الرسمية", "url": "https://t.me/Awad_Numbers_Bot"},
