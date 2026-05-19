@@ -5,13 +5,13 @@ import sys
 import time
 import re
 from threading import Thread
-import concurrent.futures  
+import concurrent.futures
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask
-from urllib.parse import quote  
+from urllib.parse import quote
 
 # --- 1. SYSTEM ENCODING FORCE ---
 try:
@@ -49,20 +49,16 @@ def keep_alive():
 
 # --- 3. BOT CONFIGURATIONS & KEYS ---
 API_TOKEN = '8686242492:AAH9V_N0TWhP_06b_F40Y3vL9lKk7gNxZBo'
-API_5SIM_KEY = 'ضع_مفتاح_الـ_API_الخاص_بموقع_5sim_هنا' 
-ADMIN_ID = 8388141188 
-CHANNEL_LOG_ID = "@Awad_Numbers_Bot"  
+API_5SIM_KEY = 'ضع_مفتاح_الـ_API_الخاص_بموقع_5sim_هنا'
+ADMIN_ID = 8388141188
+CHANNEL_LOG_ID = "@Awad_Numbers_Bot"
 
 bot = telebot.TeleBot(API_TOKEN)
-HEADERS_5SIM = {
-    'Authorization': f'Bearer {API_5SIM_KEY}',
-    'Accept': 'application/json'
-}
-
+HEADERS_5SIM = {'Authorization': f'Bearer {API_5SIM_KEY}', 'Accept': 'application/json'}
 PROFIT_MARGIN = 0.05
 DEVELOPER_URL = "https://t.me/awad3210"
 
-CHANNELS = ['@Awad_Numbers_Bot', '@jzbznznx', '@sn6hdbdn19dndw'] 
+CHANNELS = ['@Awad_Numbers_Bot', '@jzbznznx', '@sn6hdbdn19dndw']
 SUBSCRIPTION_LINKS = [
     {"name": "📢 قناة البوت الرسمية", "url": "https://t.me/Awad_Numbers_Bot"},
     {"name": "📢 قناة عبارات بشكل عام", "url": "https://t.me/jzbznznx"},
@@ -72,26 +68,7 @@ SUBSCRIPTION_LINKS = [
 
 user_last_action = {}
 
-SERVICES_PAID = {
-    "whatsapp": {"name": "🟢 WhatsApp / واتساب", "code": "whatsapp"},
-    "telegram": {"name": "🔵 Telegram / تليجرام", "code": "telegram"},
-    "facebook": {"name": "🔵 Facebook / فيسبوك", "code": "facebook"},
-    "instagram": {"name": "📸 Instagram / انستغرام", "code": "instagram"}
-}
-
-COUNTRIES_DATA = {
-    "yemen": {"name": "🇾🇪 Yemen / اليمن", "slug": "yemen", "code": "967"},
-    "egypt": {"name": "🇪🇬 Egypt / مصر", "slug": "egypt", "code": "20"},
-    "iraq": {"name": "🇮🇶 Iraq / العراق", "slug": "iraq", "code": "964"},
-    "usa": {"name": "🇺🇸 USA / أمريكا", "slug": "usa", "code": "1"},
-    "uk": {"name": "🇬🇧 UK / بريطانيا", "slug": "united-kingdom", "code": "44"},
-    "germany": {"name": "🇩🇪 Germany / ألمانيا", "slug": "germany", "code": "49"},
-    "france": {"name": "🇫🇷 France / فرنسا", "slug": "france", "code": "33"},
-    "russia": {"name": "🇷🇺 Russia / روسيا", "slug": "russia", "code": "7"},
-    "sweden": {"name": "🇸🇪 Sweden / السويد", "slug": "sweden", "code": "46"}
-}
-
-# --- 4. HELPERS ---
+# --- 4. HELPERS (الدوال المطلوبة) ---
 def mask_phone(phone_str):
     if not phone_str: return ""
     phone_str = str(phone_str).strip()
@@ -113,7 +90,8 @@ def save_user(user_id):
 
 def get_users_count():
     if not os.path.exists("users.txt"): return 0
-    with open("users.txt", "r") as f: return len([line for line in f.read().splitlines() if line.strip()])
+    with open("users.txt", "r") as f:
+        return len([line for line in f.read().splitlines() if line.strip()])
 
 def is_subscribed(user_id):
     if user_id == ADMIN_ID: return True
@@ -135,77 +113,12 @@ def check_spam(user_id):
     else: user_last_action[user_id] = (current_time, 1)
     return False
 
-# --- 5. SCRAPER ---
-def scrape_single_source(url, code):
-    nums = []
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-    try:
-        r = requests.get(url, headers=headers, timeout=3)
-        if r.status_code == 200:
-            soup = BeautifulSoup(r.text, 'html.parser')
-            for element in soup.find_all(['h3', 'h4', 'a', 'span', 'p', 'td']):
-                txt = element.text.strip().replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
-                if txt.startswith('+') and txt[1:].startswith(code):
-                    clean_num = re.sub(r'[^\d+]', '', txt)
-                    if len(clean_num) > 8: nums.append(clean_num)
-                elif txt.startswith(code) and len(txt) > 8:
-                    clean_num = "+" + re.sub(r'[^\d]', '', txt)
-                    nums.append(clean_num)
-    except: pass
-    return nums
-
-def fetch_all_sources_fast(code, slug):
-    sources = [f"https://sms-receive.net/free-sms-numbers-{slug}", f"https://receive-smss.com/free-sms-numbers/{code}", f"https://anonymsms.com/country/{slug}", f"https://sms24.me/en/countries/{slug}", f"https://receive-sms.cc/country/{slug}", f"https://www.receivesms.co/country/{slug}", f"https://temporary-phone-number.com/country/{slug}", f"https://freephonenums.com/{slug}", f"https://online-sms.org/en/countries/{slug}", f"https://sms-online.co/receive-free-sms/{slug}", f"https://receiveasms.com/country/{slug}"]
-    all_numbers = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executor:
-        futures = [executor.submit(scrape_single_source, url, code) for url in sources]
-        for future in concurrent.futures.as_completed(futures): all_numbers.extend(future.result())
-    return list(set(all_numbers))[:15]
-
-# --- 6. KEYBOARDS ---
-def get_main_reply_keyboard():
-    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    markup.add(KeyboardButton("Countries 🌍"), KeyboardButton("Get Number 🔄"), KeyboardButton("Server Status 🌐"), KeyboardButton("Password 🔑"), KeyboardButton("Extract ID 🆔"), KeyboardButton("👨‍💻 تواصل مع المطور"), KeyboardButton("⚡ Admin Broadcast Panel ⚡"))
-    return markup
-
-def show_main_menu(chat_id):
-    inline_markup = InlineKeyboardMarkup(row_width=1)
-    inline_markup.add(InlineKeyboardButton("🛍️ قسم الأرقام المدفوعة • كود فوري تفعيل مضمون", callback_data="section_paid"), InlineKeyboardButton("🌐 قسم الأرقام المجانية • تحديث تلقائي سريع", callback_data="section_free"), InlineKeyboardButton("💡 نصائح هامة لتثبيت وتفعيل الرقم", callback_data="activation_tips"), InlineKeyboardButton("👤 حسابي الشخصي", callback_data="my_account"), InlineKeyboardButton("👨‍💻 تواصل مع مالك البوت", url=DEVELOPER_URL), InlineKeyboardButton("⚙️ لوحة التحكم للمطور", callback_data="admin_panel"))
-    bot.send_message(chat_id, "👑 **مرحباً بك في نظام المقنع:**\n\n🎯 *تستطيع الآن اقتناص أرقام مجانية أو مدفوعة لتفعيل الواتساب، التليجرام، الفيسبوك، والانستغرام.*", reply_markup=get_main_reply_keyboard(), parse_mode="Markdown")
-
-# --- 7. HANDLERS ---
-@bot.message_handler(commands=['start'])
-def start(message):
-    save_user(message.from_user.id)
-    if not is_subscribed(message.from_user.id):
-        markup = InlineKeyboardMarkup(row_width=1)
-        for item in SUBSCRIPTION_LINKS: markup.add(InlineKeyboardButton(item["name"], url=item["url"]))
-        markup.add(InlineKeyboardButton("✨ تم الاشتراك، دخول البوت ✅", callback_data="verify"))
-        return bot.send_message(message.chat.id, "⚠️ **يجب عليك الاشتراك في قنوات البوت أولاً لتفعيله:**", reply_markup=markup, parse_mode="Markdown")
-    show_main_menu(message.chat.id)
-
-@bot.message_handler(func=lambda message: True)
-def handle_reply_keyboard_buttons(message):
-    text = message.text
-    if text == "Countries 🌍":
-        inline_markup = InlineKeyboardMarkup(row_width=2)
-        inline_markup.add(InlineKeyboardButton("🟢 WhatsApp", callback_data="fsvc_whatsapp_🟢"), InlineKeyboardButton("🔵 Telegram", callback_data="fsvc_telegram_🔵"), InlineKeyboardButton("🔵 Facebook", callback_data="fsvc_facebook_🔵"), InlineKeyboardButton("📸 Instagram", callback_data="fsvc_instagram_📸"), InlineKeyboardButton("🔙 عودة", callback_data="back_home"))
-        bot.send_message(message.chat.id, "🌐 **اختر الخدمة:**", reply_markup=inline_markup)
-    elif text == "Get Number 🔄":
-        inline_markup = InlineKeyboardMarkup(row_width=2)
-        for k, v in SERVICES_PAID.items(): inline_markup.add(InlineKeyboardButton(v["name"], callback_data=f"p_app_{k}"))
-        bot.send_message(message.chat.id, "🛍️ **اختر تطبيق للأرقام المدفوعة:**", reply_markup=inline_markup)
-    elif text == "Server Status 🌐": bot.send_message(message.chat.id, "🟢 **السيرفر يعمل بكفاءة.**")
-    elif text == "Extract ID 🆔": bot.send_message(message.chat.id, f"🆔 **معرفك:** `{message.from_user.id}`", parse_mode="Markdown")
-    elif text == "⚡ Admin Broadcast Panel ⚡":
-        if message.from_user.id == ADMIN_ID: bot.send_message(message.chat.id, f"👥 **المشتركين:** {get_users_count()}")
-
-@bot.callback_query_handler(func=lambda call: True)
-def handle_queries(call):
-    # (باقي كود الـ Callback Handler الخاص بك)
-    pass
-
-# --- 9. INITIALIZE ---
+# --- 5. INITIALIZE ---
 if __name__ == "__main__":
     keep_alive()
-    bot.infinity_polling(timeout=20, long_polling_timeout=10)
+    print("Bot engine is running successfully!")
+    while True:
+        try:
+            bot.infinity_polling(timeout=20, long_polling_timeout=10)
+        except Exception as e:
+            time.sleep(5)
