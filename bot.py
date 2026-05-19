@@ -46,7 +46,6 @@ def keep_alive():
     Thread(target=self_ping).start()
 
 # --- 3. BOT CONFIGURATIONS & KEYS ---
-# تم تحديث التوكن هنا بناءً على الـ Revoke الجديد ليموت السيرفر القديم فوراً 🚀
 API_TOKEN = '8686242492:AAH9V_N0TWhP_06b_F40Y3vL9lKk7gNxZBo'
 API_5SIM_KEY = 'ضع_مفتاح_الـ_API_الخاص_بموقع_5sim_هنا' 
 ADMIN_ID = 8388141188 
@@ -61,7 +60,7 @@ HEADERS_5SIM = {
 PROFIT_MARGIN = 0.05
 DEVELOPER_URL = "https://t.me/awad3210"
 
-# القنوات الرسمية النظيفة الخاصة بك فقط
+# القنوات الرسمية
 CHANNELS = ['@Awad_Numbers_Bot', '@jzbznznx', '@sn6hdbdn19dndw'] 
 SUBSCRIPTION_LINKS = [
     {"name": "📢 قناة البوت الرسمية", "url": "https://t.me/Awad_Numbers_Bot"},
@@ -91,7 +90,23 @@ COUNTRIES_DATA = {
     "sweden": {"name": "🇸🇪 Sweden / السويد", "slug": "sweden", "code": "46"}
 }
 
-# --- 4. HELPERS ---
+# --- 4. HELPERS (PRIVACY MASKING) ---
+def mask_phone(phone_str):
+    """إخفاء آخر 3 أرقام من الرقم"""
+    if not phone_str: return ""
+    phone_str = str(phone_str).strip()
+    if len(phone_str) > 3:
+        return phone_str[:-3] + "***"
+    return phone_str + "***"
+
+def mask_code(code_str):
+    """إخفاء آخر حرفين/رقمين من كود التفعيل"""
+    if not code_str: return ""
+    code_str = str(code_str).strip()
+    if len(code_str) > 2:
+        return code_str[:-2] + "**"
+    return code_str + "**"
+
 def save_user(user_id):
     if not os.path.exists("users.txt"):
         with open("users.txt", "w") as f: pass
@@ -177,11 +192,12 @@ def get_main_reply_keyboard():
     btn_server_status = KeyboardButton("Server Status 🌐")
     btn_password = KeyboardButton("Password 🔑")
     btn_extract_id = KeyboardButton("Extract ID 🆔")
+    btn_dev_contact = KeyboardButton("👨‍💻 تواصل مع المطور")
     btn_admin_panel = KeyboardButton("⚡ Admin Broadcast Panel ⚡")
     
     markup.add(btn_countries, btn_get_number)
     markup.add(btn_server_status, btn_password)
-    markup.add(btn_extract_id)
+    markup.add(btn_extract_id, btn_dev_contact)
     markup.add(btn_admin_panel)
     return markup
 
@@ -259,6 +275,11 @@ def handle_reply_keyboard_buttons(message):
         )
         bot.send_message(message.chat.id, account_text, parse_mode="Markdown")
 
+    elif text == "👨‍💻 تواصل مع المطور":
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("💬 إرسال رسالة للمطور مباشرة", url=DEVELOPER_URL))
+        bot.send_message(message.chat.id, "👨‍💻 **يمكنك التواصل مع مطور ومغلق البوت عبر الرابط المباشر أدناه:**", reply_markup=markup, parse_mode="Markdown")
+
     elif text == "⚡ Admin Broadcast Panel ⚡":
         if message.from_user.id != ADMIN_ID:
             return bot.send_message(message.chat.id, "❌ عذراً! هذه اللوحة محمية وخاصة بمالك البوت فقط.")
@@ -326,6 +347,7 @@ def handle_queries(call):
                 num_id, phone, price = data.get("id"), data.get("phone"), data.get("price", 0)
                 final_price = round(price + PROFIT_MARGIN, 2)
                 
+                # إرسال الرقم كامل بدون إخفاء للمستخدم في الشات الخاص به فقط
                 success_box = (
                     "🎉 **تم سحب الرقم المدفوع بنجاح!**\n\n"
                     f"📱 **التطبيق:** `{target_app.upper()}`\n"
@@ -341,9 +363,15 @@ def handle_queries(call):
                     check_res = requests.get(f"https://5sim.net/v1/user/check/{quote(str(num_id))}", headers=HEADERS_5SIM).json()
                     if check_res.get("sms"):
                         sms_code = str(check_res["sms"][0].get("code"))
+                        
+                        # إرسال للقناة مع تفعيل نظام الإخفاء التام للأمان 
                         try:
-                            bot.send_message(CHANNEL_LOG_ID, f"🔥 **تفعيل مدفوع جديد:**\n📞 الرقم: `{phone}`\n📱 الخدمة: `{target_app.upper()}`\n🔑 الكود: `{sms_code}`")
+                            masked_p = mask_phone(phone)
+                            masked_c = mask_code(sms_code)
+                            bot.send_message(CHANNEL_LOG_ID, f"🔥 **تفعيل مدفوع جديد:**\n📞 الرقم: `{masked_p}`\n📱 الخدمة: `{target_app.upper()}`\n🔑 الكود: `{masked_c}`")
                         except: pass
+                        
+                        # إرسال للمستخدم في محادثة البوت بدون أي إخفاء
                         return bot.send_message(call.message.chat.id, f"🔥 **وصل كود التفعيل الآن:**\n\n📞 الرقم: `{phone}`\n🔑 كود الـ OTP: `{sms_code}`", parse_mode="Markdown")
                 bot.send_message(call.message.chat.id, "❌ انتهى الوقت ولم يصل كود. تم إلغاء الطلب مجاناً.")
             else:
@@ -405,15 +433,21 @@ def handle_queries(call):
         _, target_phone, target_svc = call.data.split("_")
         bot.answer_callback_query(call.id, "📡 جاري فحص الرسائل المستلمة حديثاً للرقم...")
         
+        # يرسل للمستخدم بالخاص كامل دون إخفاء
         copy_text = f"📋 **الرقم الذي اخترته (اضغط عليه للنسخ فوراً):**\n`{target_phone}`"
         bot.send_message(call.message.chat.id, copy_text, parse_mode="Markdown")
         
         time.sleep(2)
         dummy_free_otp = "551482"  
+        
+        # يرسل للقناة مخفي ومحمي تماماً من السرقة أو المراقبة
         try:
-            bot.send_message(CHANNEL_LOG_ID, f"🌐 **كود تفعيل مجاني جديد:**\n\n📞 الرقم: `{target_phone}`\n📱 الخدمة: `{target_svc.upper()}`\n🔑 الكود: `{dummy_free_otp}`")
+            masked_p = mask_phone(target_phone)
+            masked_c = mask_code(dummy_free_otp)
+            bot.send_message(CHANNEL_LOG_ID, f"🌐 **كود تفعيل مجاني جديد:**\n\n📞 الرقم: `{masked_p}`\n📱 الخدمة: `{target_svc.upper()}`\n🔑 الكود: `{masked_c}`")
         except: pass
             
+        # يرسل للمستخدم في محادثاته الخاصة كامل وبدون اخفاء
         free_otp_box = (
             f"📢 **وصل كود التفعيل المجاني المستهدف:**\n\n"
             f"📞 الرقم: `{target_phone}`\n"
