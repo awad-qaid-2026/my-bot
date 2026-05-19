@@ -60,6 +60,7 @@ HEADERS_5SIM = {
 PROFIT_MARGIN = 0.05
 DEVELOPER_URL = "https://t.me/awad3210"
 
+# هنا القنوات الرسمية الخاصة بك فقط (تم تنظيفها والتأكد منها)
 CHANNELS = ['@Awad_Numbers_Bot', '@jzbznznx', '@sn6hdbdn19dndw'] 
 SUBSCRIPTION_LINKS = [
     {"name": "📢 قناة البوت الرسمية", "url": "https://t.me/Awad_Numbers_Bot"},
@@ -313,7 +314,6 @@ def handle_queries(call):
         target_app, target_country = parts[2], parts[3]
         bot.edit_message_text("📡 `جاري جلب الرقم الحصري من بوابة 5sim.. انتظر ثوانٍ..`", call.message.chat.id, call.message.message_id, parse_mode="Markdown")
         
-        # تحويل القيم لنصوص آمنة للطلب البرمجي منعا لخطأ latin-1 codec
         safe_country = quote(str(target_country).strip())
         safe_app = quote(str(target_app).strip())
         url_order = f"https://5sim.net/v1/user/buy/activation/{safe_country}/any/{safe_app}"
@@ -388,7 +388,6 @@ def handle_queries(call):
                 
         nums = fetch_all_sources_fast(code, slug)
         
-        # التعديل الجديد: إذا لم يجد أرقام لهذه الدولة يعطيه زر عودة بدلاً من مجرد تنبيه فارغ
         if nums:
             markup = InlineKeyboardMarkup(row_width=2)
             for n in nums:
@@ -404,6 +403,9 @@ def handle_queries(call):
     elif call.data.startswith("fotp_"):
         _, target_phone, target_svc = call.data.split("_")
         bot.answer_callback_query(call.id, "📡 جاري فحص الرسائل المستلمة حديثاً للرقم...")
+        
+        copy_text = f"📋 **الرقم الذي اخترته (اضغط عليه للنسخ فوراً):**\n`{target_phone}`"
+        bot.send_message(call.message.chat.id, copy_text, parse_mode="Markdown")
         
         time.sleep(2)
         dummy_free_otp = "551482"  
