@@ -77,12 +77,11 @@ SERVICES_PAID = {
     "instagram": {"name": "📸 Instagram / انستغرام", "code": "instagram"}
 }
 
+# قائمة الدول المحددة والثابتة لضمان ظهور الأزرار دائماً
 COUNTRIES_DATA = {
     "yemen": {"name": "🇾🇪 Yemen / اليمن", "slug": "yemen", "code": "967"},
-    "saudiarabia": {"name": "🇸🇦 Saudi Arabia / السعودية", "slug": "saudi-arabia", "code": "966"},
     "egypt": {"name": "🇪🇬 Egypt / مصر", "slug": "egypt", "code": "20"},
     "iraq": {"name": "🇮🇶 Iraq / العراق", "slug": "iraq", "code": "964"},
-    "morocco": {"name": "🇲🇦 Morocco / المغرب", "slug": "morocco", "code": "212"},
     "usa": {"name": "🇺🇸 USA / أمريكا", "slug": "usa", "code": "1"},
     "uk": {"name": "🇬🇧 UK / بريطانيا", "slug": "united-kingdom", "code": "44"},
     "germany": {"name": "🇩🇪 Germany / ألمانيا", "slug": "germany", "code": "49"},
@@ -90,8 +89,6 @@ COUNTRIES_DATA = {
     "russia": {"name": "🇷🇺 Russia / روسيا", "slug": "russia", "code": "7"},
     "sweden": {"name": "🇸🇪 Sweden / السويد", "slug": "sweden", "code": "46"}
 }
-
-ACTIVE_FREE_COUNTRIES = ["usa", "uk", "germany", "france", "sweden", "egypt", "iraq"]
 
 # --- 4. HELPERS ---
 def save_user(user_id):
@@ -162,9 +159,7 @@ def fetch_all_sources_fast(code, slug):
         f"https://freephonenums.com/{slug}",
         f"https://online-sms.org/en/countries/{slug}",
         f"https://sms-online.co/receive-free-sms/{slug}",
-        f"https://receiveasms.com/country/{slug}",
-        f"https://www.smsreceivefree.com/country/{slug}",
-        f"https://smstome.com/country/{slug}"
+        f"https://receiveasms.com/country/{slug}"
     ]
     all_numbers = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executor:
@@ -303,10 +298,11 @@ def handle_queries(call):
         _, name, icon = call.data.split("_")
         markup = InlineKeyboardMarkup(row_width=2)
         
+        # الأزرار تظهر الآن دائماً وثابتة 100% دون فلاتر أو شروط حذف
         btns = []
         for k, v in COUNTRIES_DATA.items():
-            if k in ACTIVE_FREE_COUNTRIES:
-                btns.append(InlineKeyboardButton(v["name"], callback_data=f"fget_{v['code']}_{name}_{icon}"))
+            btns.append(InlineKeyboardButton(v["name"], callback_data=f"fget_{v['code']}_{name}_{icon}"))
+            
         markup.add(*btns)
         markup.add(InlineKeyboardButton("🔙 عودة", callback_data="section_free"))
         bot.edit_message_text(f"{icon} **تفعيل خدمات {name} المجانية**\n\n🌍 اختر الدولة لسحب الرقم المتاح فوراً:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
