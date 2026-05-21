@@ -13,9 +13,9 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 # --- 2. إعدادات البوت والـ API (تعديل التوكن الجديد) ---
 API_TOKEN = '8686242492:AAEg1LcQBk3y3QA0ZOr7B39_58V3jfXSw04'
-API_5SIM_KEY = 'ضع_مفتاح_الـ_API_الخاص_بموقع_5sim_هنا' 
-ADMIN_ID = 8388141188 
-CHANNEL_LOG_ID = "@Awad_Numbers_Bot"  
+API_5SIM_KEY = 'ضع_مفتاح_الـ_API_الخاص_بموقع_5sim_هنا'
+ADMIN_ID = 8388141188
+CHANNEL_LOG_ID = "@Awad_Numbers_Bot"
 
 bot = telebot.TeleBot(API_TOKEN)
 HEADERS_5SIM = {
@@ -27,7 +27,7 @@ PROFIT_MARGIN = 0.05
 DEVELOPER_URL = "https://t.me/awad3210"
 
 # قنوات الاشتراك الإجباري
-CHANNELS = ['@Awad_Numbers_Bot', '@jzbznznx', '@sn6hdbdn19dndw'] 
+CHANNELS = ['@Awad_Numbers_Bot', '@jzbznznx', '@sn6hdbdn19dndw']
 SUBSCRIPTION_LINKS = [
     {"name": "📢 قناة البوت الرسمية", "url": "https://t.me/Awad_Numbers_Bot"},
     {"name": "📢 قناة عبارات بشكل عام", "url": "https://t.me/jzbznznx"},
@@ -142,7 +142,7 @@ def handle_queries(call):
             bot.delete_message(call.message.chat.id, call.message.message_id)
             show_main_menu(call.message.chat.id)
         else:
-            bot.answer_callback_query(call.id, "❌ لم تشترك في جميع القنوات بعد! تأكد واضغط مجدداً.", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ لم تشترك in جميع القنوات بعد! تأكد واضغط مجدداً.", show_alert=True)
 
     elif call.data == "back_home":
         bot.delete_message(call.message.chat.id, call.message.message_id)
