@@ -1,77 +1,58 @@
-import sys, os, time, re, threading, concurrent.futures
-import telebot
-from telebot import types
-import cloudscraper
-from bs4 import BeautifulSoup
+import sys, os, time, re, threading, concurrent.futures, telebot, requests
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 from flask import Flask
-from urllib.parse import quote
 
-# --- 1. CONFIG & SETUP ---
-API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
-ADMIN_ID = 8388141188
+# --- 1. الإعدادات ---
+API_TOKEN = '8686242492:AAEg1LcQBk3y3QA0ZOr7B39_58V3jfXSw04'
+API_5SIM_KEY = 'ضع_مفتاح_الـ_API_الخاص_بموقع_5sim_هنا' 
+ADMIN_ID = 8388141188 
 bot = telebot.TeleBot(API_TOKEN)
-scraper = cloudscraper.create_scraper()
 
-# --- 2. KEEP ALIVE (24/7) ---
+# --- 2. نظام الـ 24/7 (Keep Alive) ---
 app = Flask('')
 @app.route('/')
-def home(): return "Bot is Active!"
+def home(): return "⚡ Al-Moqana Server Active ⚡"
 def run(): app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))
-threading.Thread(target=run).start()
+threading.Thread(target=run, daemon=True).start()
 
-# --- 3. KEYBOARD ---
-def main_keyboard():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    markup.add(
-        types.KeyboardButton("Countries 🌐"), types.KeyboardButton("Get Number 🔄"),
-        types.KeyboardButton("Server Status 🌐"), types.KeyboardButton("Password 🔑"),
-        types.KeyboardButton("Extract ID 🆔"), types.KeyboardButton("Admin Broadcast Panel ⚡")
-    )
+# --- 3. الكيبورد السفلي الثابت ---
+def get_main_keyboard():
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(KeyboardButton("Countries 🌍"), KeyboardButton("Get Number 🔄"), 
+               KeyboardButton("Server Status 🌐"), KeyboardButton("Password 🔑"),
+               KeyboardButton("Extract ID 🆔"), KeyboardButton("⚡ Admin Broadcast Panel ⚡"))
     return markup
 
-# --- 4. ENGINE ---
-def scrape_numbers(country_code, slug):
-    sources = [f"https://anonymsms.com/country/{slug}", f"https://sms-receive.net/free-sms-numbers-{slug}"]
-    nums = []
-    for url in sources:
-        try:
-            r = scraper.get(url, timeout=5)
-            soup = BeautifulSoup(r.text, 'html.parser')
-            for txt in soup.stripped_strings:
-                if f"+{country_code}" in txt: nums.append(txt)
-        except: pass
-    return list(set(nums))[:5]
-
-# --- 5. HANDLERS ---
+# --- 4. معالج الأوامر ---
 @bot.message_handler(commands=['start'])
 def start(message):
-    bot.send_message(message.chat.id, "👑 **مرحباً بك في نظام المقنع المتطور**\nاستخدم الأزرار بالأسفل:", reply_markup=main_keyboard())
+    bot.send_message(message.chat.id, "👑 أهلاً بك في نظام 'دمار المقنع' الفائق.\nالمحرك الذكي جاهز للعمل.", reply_markup=get_main_keyboard())
 
 @bot.message_handler(func=lambda message: True)
 def handle_text(message):
-    if message.text == "Countries 🌐":
-        bot.reply_to(message, "🌍 الدول المتاحة: أمريكا، بريطانيا، ألمانيا، اليمن، مصر، العراق.")
+    text = message.text
+    chat_id = message.chat.id
     
-    elif message.text == "Server Status 🌐":
-        bot.reply_to(message, "🟢 الحالة: سيرفر المقنع يعمل بكفاءة 24/7.")
+    if text == "Get Number 🔄":
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("🛍️ أرقام مدفوعة", callback_data="section_paid"),
+                   InlineKeyboardButton("🌐 أرقام مجانية", callback_data="section_free"))
+        bot.reply_to(message, "اختر القسم المطلوب:", reply_markup=markup)
         
-    elif message.text == "Extract ID 🆔":
-        bot.reply_to(message, f"🆔 معرفك الخاص: `{message.from_user.id}`", parse_mode="Markdown")
-
-    elif message.text == "Admin Broadcast Panel ⚡":
-        if message.from_user.id == ADMIN_ID:
-            bot.reply_to(message, "📢 لوحة الإدارة: أرسل الرسالة التي تريد بثها للمستخدمين.")
+    elif text == "Server Status 🌐":
+        bot.reply_to(message, "🟢 السيرفر يعمل بكفاءة عالية.\n🌐 حالة الاتصال: متصل.")
+        
+    elif text == "Extract ID 🆔":
+        bot.reply_to(message, f"🆔 معرفك الخاص هو: `{chat_id}`", parse_mode="Markdown")
+        
+    elif text == "⚡ Admin Broadcast Panel ⚡":
+        if chat_id == ADMIN_ID:
+            bot.reply_to(message, "⚙️ مرحباً بك في لوحة تحكم المطور.")
         else:
-            bot.reply_to(message, "❌ لا تملك صلاحيات المطور.")
-
-    elif message.text == "Get Number 🔄":
-        # مثال لجلب أرقام أمريكا
-        bot.reply_to(message, "📡 جاري جلب الأرقام..")
-        nums = scrape_numbers("1", "usa")
-        if nums:
-            bot.send_message(message.chat.id, "📞 الأرقام المتاحة:\n" + "\n".join(nums))
-        else:
-            bot.send_message(message.chat.id, "❌ لم يتم العثور على أرقام حالياً.")
+            bot.reply_to(message, "❌ هذه اللوحة خاصة بالمطور فقط.")
+            
+    else:
+        bot.reply_to(message, "يرجى اختيار أمر من الأزرار السفلية.", reply_markup=get_main_keyboard())
 
 if __name__ == "__main__":
     bot.infinity_polling()
