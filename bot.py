@@ -13,7 +13,7 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 API_TOKEN = '8686242492:AAEg1LcQBk3y3QA0ZOr7B39_58V3jfXSw04'
 
 bot = telebot.TeleBot(API_TOKEN)
-app = Flask(name)
+app = Flask(__name__)
 
 # مثال لكيفية إرسال الطلبات لـ API الأرقام بأمان دون أخطاء ترميز
 def get_number_from_api(api_url, payload={}):
@@ -50,6 +50,6 @@ def webhook():
     # bot.set_webhook(url='https://al-moqana.onrender.com/' + API_TOKEN)
     return "البوت يعمل بنجاح والترميز آمن!", 200
 
-if name == "main":
+if __name__ == "__main__":
     # تشغيل السيرفر
     app.run(host="0.0.0.0", port=int(os.environ.get('PORT', 8080)))
