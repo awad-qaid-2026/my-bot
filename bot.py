@@ -2,22 +2,34 @@ import os
 import sys
 import io
 import time
+from threading import Thread
 import requests
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from flask import Flask
 
-# --- 1. الإعدادات الأساسية والمفاتيح ---
-# تم وضع توكن البوت الخاص بك المأخوذ من الصور تلقائياً هنا
+# --- 1. إنشاء سيرفر وهمي لـ Render لمنع الـ Exited Early ---
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot is alive and running!", 200
+
+def run_flask():
+    # Render يمرر منفذ الـ Port تلقائياً عبر متغيرات البيئة
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
+
+# --- 2. الإعدادات الأساسية للبوت والمفاتيح ---
 API_TOKEN = '8686242492:AAEg1LcQBk3y3QA0ZOr7B39_58V3jfXSw04'
-# ضع هنا مفتاح الـ API الخاص بموقع 5sim بين العلامتين ''
-API_5SIM_KEY = 'ضع_مفتاح_5sim_هنا'
+API_5SIM_KEY = 'ضع_مفتاح_5sim_هنا' # ضع مفتاح الـ API الخاص بموقع 5sim هنا
 
 ADMIN_ID = 8388141188
 CHANNEL_LOG_ID = "@Awad_Numbers_Bot"
 
 bot = telebot.TeleBot(API_TOKEN)
 
-# ترويسة الاتصال الآمن لمنع انهيار latin-1 وتمرير الرموز العربية بأمان
+# ترويسة معالجة لتقبل ترميز utf-8 العالمي بشكل آمن ومنع خطأ latin-1 تماماً
 HEADERS_5SIM = {
     'Authorization': f'Bearer {API_5SIM_KEY}'.encode('utf-8').decode('latin-1'),
     'Accept': 'application/json',
@@ -58,7 +70,7 @@ COUNTRIES_DATA = {
     "usa": {"name": "🇺🇸 USA / أمريكا", "slug": "usa", "code": "1"}
 }
 
-# --- 2. دوال الحماية وحفظ البيانات ---
+# --- 3. دوال الحماية وقاعدة البيانات المصغرة ---
 def save_user(user_id):
     try:
         if not os.path.exists("users.txt"):
@@ -102,7 +114,7 @@ def check_spam(user_id):
         user_last_action[user_id] = (current_time, 1)
     return False
 
-# --- 3. تصميم لوحات التحكم والقوائم ---
+# --- 4. واجهات الاستجابة والقوائم التفاعلية ---
 def show_main_menu(chat_id):
     markup = InlineKeyboardMarkup(row_width=1)
     markup.add(
@@ -166,7 +178,7 @@ def handle_queries(call):
         markup = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 عودة للقائمة الرئيسية", callback_data="back_home"))
         bot.edit_message_text(tips, call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
 
-    # --- قسم السحب والطلب الرئيسي ---
+    # === قسم السحب والربط بـ 5SIM ===
     elif call.data == "section_paid":
         markup = InlineKeyboardMarkup(row_width=2)
         for k, v in SERVICES_PAID.items():
@@ -215,7 +227,7 @@ def handle_queries(call):
                 )
                 bot.send_message(call.message.chat.id, success_box, parse_mode="Markdown")
                 
-                # حلقة فحص وصول الـ SMS
+                # مراقبة الكود القادم من الـ API
                 for _ in range(30):
                     time.sleep(10)
                     try:
@@ -269,13 +281,23 @@ def handle_queries(call):
         )
         bot.edit_message_text(admin_panel_text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
-# --- 4. بدء التشغيل السحابي النظيف المتوافق مع Render ---
+# --- 5. تشغيل خادمين في آن واحد لضمان استقرار السيرفر سحابياً ---
 if __name__ == "__main__":
-    print("Starting Clean Cloud Deployment...")
-    try:
-        bot.remove_webhook()
-        print("🚀 Webhook removed. Starting Infinity Polling...")
-        bot.infinity_polling(timeout=40, long_polling_timeout=20)
-    except Exception as main_error:
-        print(f"Critical system log: {main_error}")
-        time.sleep(5)
+    print("إعداد البيئة المتكاملة للبوت على Render...")
+    
+    # تشغيل سيرفر الويب الوهمي لتجاوز Exited Early في الـ Background
+    server_thread = Thread(target=run_flask)
+    server_thread.daemon = True
+    server_thread.start()
+    print("🚀 تم تشغيل ويب سيرفر خلفي لتأمين استجابة منصة Render!")
+    
+    # حذف الويب هوك لتفعيل الـ Polling الفوري النظيف
+    bot.remove_webhook()
+    print("🚀 البوت جاهز تماماً للرد المباشر والنفاث دون تعليق!")
+    
+    while True:
+        try:
+            bot.infinity_polling(timeout=30, long_polling_timeout=15)
+        except Exception as e:
+            print(f"Polling error placeholder: {e}")
+            time.sleep(5)
