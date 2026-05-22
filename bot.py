@@ -2,25 +2,26 @@ import os
 import sys
 import io
 import time
-from threading import Thread
+import requests
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-import requests
 
-# --- 1. نظام فرض الترميز الشامل لمنع خطأ latin-1 تماماً ---
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
-
-# --- 2. إعدادات البوت والـ API (تعديل التوكن الجديد) ---
+# --- 1. الإعدادات الأساسية والمفاتيح ---
+# تم وضع توكن البوت الخاص بك المأخوذ من الصور تلقائياً هنا
 API_TOKEN = '8686242492:AAEg1LcQBk3y3QA0ZOr7B39_58V3jfXSw04'
-API_5SIM_KEY = 'ضع_مفتاح_الـ_API_الخاص_بموقع_5sim_هنا'
+# ضع هنا مفتاح الـ API الخاص بموقع 5sim بين العلامتين ''
+API_5SIM_KEY = 'ضع_مفتاح_5sim_هنا'
+
 ADMIN_ID = 8388141188
 CHANNEL_LOG_ID = "@Awad_Numbers_Bot"
 
 bot = telebot.TeleBot(API_TOKEN)
+
+# ترويسة الاتصال الآمن لمنع انهيار latin-1 وتمرير الرموز العربية بأمان
 HEADERS_5SIM = {
-    'Authorization': f'Bearer {API_5SIM_KEY}',
-    'Accept': 'application/json'
+    'Authorization': f'Bearer {API_5SIM_KEY}'.encode('utf-8').decode('latin-1'),
+    'Accept': 'application/json',
+    'Accept-Charset': 'utf-8'
 }
 
 PROFIT_MARGIN = 0.05
@@ -57,21 +58,27 @@ COUNTRIES_DATA = {
     "usa": {"name": "🇺🇸 USA / أمريكا", "slug": "usa", "code": "1"}
 }
 
-# --- 3. المساعدين والحماية من السبام ---
+# --- 2. دوال الحماية وحفظ البيانات ---
 def save_user(user_id):
-    if not os.path.exists("users.txt"):
-        with open("users.txt", "w") as f: pass
-    with open("users.txt", "r+") as f:
-        data = f.read()
-        if str(user_id) not in data:
-            f.seek(0, 2)
-            f.write(f"{user_id}\n")
+    try:
+        if not os.path.exists("users.txt"):
+            with open("users.txt", "w", encoding="utf-8") as f: pass
+        with open("users.txt", "r+", encoding="utf-8") as f:
+            data = f.read()
+            if str(user_id) not in data:
+                f.seek(0, 2)
+                f.write(f"{user_id}\n")
+    except Exception as e:
+        print(f"Error saving user: {e}")
 
 def get_users_count():
     if not os.path.exists("users.txt"):
         return 0
-    with open("users.txt", "r") as f:
-        return len([line for line in f.read().splitlines() if line.strip()])
+    try:
+        with open("users.txt", "r", encoding="utf-8") as f:
+            return len([line for line in f.read().splitlines() if line.strip()])
+    except:
+        return 0
 
 def is_subscribed(user_id):
     if user_id == ADMIN_ID: return True
@@ -95,7 +102,7 @@ def check_spam(user_id):
         user_last_action[user_id] = (current_time, 1)
     return False
 
-# --- 4. الواجهات والقوائم ---
+# --- 3. تصميم لوحات التحكم والقوائم ---
 def show_main_menu(chat_id):
     markup = InlineKeyboardMarkup(row_width=1)
     markup.add(
@@ -139,13 +146,15 @@ def handle_queries(call):
 
     if call.data == "verify":
         if is_subscribed(call.from_user.id):
-            bot.delete_message(call.message.chat.id, call.message.message_id)
+            try: bot.delete_message(call.message.chat.id, call.message.message_id)
+            except: pass
             show_main_menu(call.message.chat.id)
         else:
-            bot.answer_callback_query(call.id, "❌ لم تشترك in جميع القنوات بعد! تأكد واضغط مجدداً.", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ لم تشترك في جميع القنوات بعد! تأكد واضغط مجدداً.", show_alert=True)
 
     elif call.data == "back_home":
-        bot.delete_message(call.message.chat.id, call.message.message_id)
+        try: bot.delete_message(call.message.chat.id, call.message.message_id)
+        except: pass
         show_main_menu(call.message.chat.id)
 
     elif call.data == "activation_tips":
@@ -157,7 +166,7 @@ def handle_queries(call):
         markup = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 عودة للقائمة الرئيسية", callback_data="back_home"))
         bot.edit_message_text(tips, call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
 
-    # === PAID SECTION ===
+    # --- قسم السحب والطلب الرئيسي ---
     elif call.data == "section_paid":
         markup = InlineKeyboardMarkup(row_width=2)
         for k, v in SERVICES_PAID.items():
@@ -206,24 +215,28 @@ def handle_queries(call):
                 )
                 bot.send_message(call.message.chat.id, success_box, parse_mode="Markdown")
                 
+                # حلقة فحص وصول الـ SMS
                 for _ in range(30):
                     time.sleep(10)
-                    check_res = requests.get(f"https://5sim.net/v1/user/check/{num_id}", headers=HEADERS_5SIM).json()
-                    if check_res.get("sms"):
-                        sms_code = str(check_res["sms"][0].get("code"))
-                        secure_code = sms_code[:-2] + ".." if len(sms_code) > 2 else ".. "
-                        
-                        try:
-                            bot.send_message(CHANNEL_LOG_ID, f"🔥 **كود تفعيل جديد ومكتمل:**\n\n📞 الرقم: `{phone}`\n📱 التطبيق: `{target_app.upper()}`\n🔑 الكود كاملاً: `{sms_code}`")
-                        except: pass
+                    try:
+                        check_res = requests.get(f"https://5sim.net/v1/user/check/{num_id}", headers=HEADERS_5SIM, timeout=8).json()
+                        if check_res.get("sms"):
+                            sms_code = str(check_res["sms"][0].get("code"))
+                            secure_code = sms_code[:-2] + ".." if len(sms_code) > 2 else ".. "
+                            
+                            try:
+                                bot.send_message(CHANNEL_LOG_ID, f"🔥 **كود تفعيل جديد ومكتمل:**\n\n📞 الرقم: `{phone}`\n📱 التطبيق: `{target_app.upper()}`\n🔑 الكود كاملاً: `{sms_code}`")
+                            except: pass
 
-                        otp_box = (
-                            "🔥 **بشرى سارة! وصل كود التفعيل الفوري الآن:**\n\n"
-                            f"📞 **الرقم:** `{phone}`\n"
-                            f"🔑 **كود الـ OTP:** `{secure_code}`\n\n"
-                            f"📢 للحصول على الكود كاملاً وسليماً 100% يرجى التحقق من قناتنا الرسمية فوراً: {CHANNEL_LOG_ID}"
-                        )
-                        return bot.send_message(call.message.chat.id, otp_box, parse_mode="Markdown")
+                            otp_box = (
+                                "🔥 **بشرى سارة! وصل كود التفعيل الفوري الآن:**\n\n"
+                                f"📞 **الرقم:** `{phone}`\n"
+                                f"🔑 **كود الـ OTP:** `{secure_code}`\n\n"
+                                f"📢 للحصول على الكود كاملاً وسليماً 100% يرجى التحقق من قناتنا الرسمية فوراً: {CHANNEL_LOG_ID}"
+                            )
+                            return bot.send_message(call.message.chat.id, otp_box, parse_mode="Markdown")
+                    except:
+                        continue
                 
                 bot.send_message(call.message.chat.id, "❌ **انتهى الوقت المحدد ولم يصل كود للتطبيق. تم إلغاء الطلب تلقائياً.**")
             else:
@@ -256,14 +269,13 @@ def handle_queries(call):
         )
         bot.edit_message_text(admin_panel_text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
-# --- 5. تشغيل البوت المباشر النفاث ---
+# --- 4. بدء التشغيل السحابي النظيف المتوافق مع Render ---
 if __name__ == "__main__":
-    print("جاري حذف الـ Webhook وتفعيل نظام الاتصال المباشر الصافي...")
-    bot.remove_webhook()
-    print("🚀 البوت جاهز تماماً للعمل والرد فوراً وبدون تعليق!")
-    
-    while True:
-        try:
-            bot.infinity_polling(timeout=20, long_polling_timeout=10)
-        except Exception as e:
-            time.sleep(5)
+    print("Starting Clean Cloud Deployment...")
+    try:
+        bot.remove_webhook()
+        print("🚀 Webhook removed. Starting Infinity Polling...")
+        bot.infinity_polling(timeout=40, long_polling_timeout=20)
+    except Exception as main_error:
+        print(f"Critical system log: {main_error}")
+        time.sleep(5)
