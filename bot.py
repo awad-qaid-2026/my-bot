@@ -12,7 +12,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Free Numbers Bot is active and running!", 200
+    return "Free Numbers Bot is alive and running!", 200
 
 def run_flask():
     try:
@@ -21,8 +21,8 @@ def run_flask():
     except Exception as e:
         print(f"Flask error: {e}")
 
-# --- 2. الإعدادات الأساسية المقترنة بالتوكن الجديد الحقيقي ---
-API_TOKEN = '8945973672:AAGE81nkOQTL_Hv9buMKBTYr6s1yTPwpUSY'
+# --- 2. الإعدادات الأساسية - ضع التوكن الصحيح هنا بدقة ---
+API_TOKEN = 'ضع_التوكن_الجديد_والصحيح_هنا'  # <--- غير هذا السطر بالتوكن الشغال من الـ BotFather
 ADMIN_ID = 8388141188
 CHANNEL_LOG_ID = "@Awad_Numbers_Bot"
 
@@ -48,7 +48,7 @@ FREE_SERVICES = {
     "instagram": {"name": "📸 Instagram / انستغرام", "code": "instagram"}
 }
 
-# قائمة الدول المتاحة للأرقام المجانية العامة المدعومة من الـ API المفتوح
+# قائمة الدول المتاحة للأرقام المجانية العامة
 FREE_COUNTRIES = {
     "usa": {"name": "🇺🇸 USA / أمريكا", "prefix": "1"},
     "canada": {"name": "🇨🇦 Canada / كندا", "prefix": "1"},
@@ -100,28 +100,23 @@ def check_spam(user_id):
         user_last_action[user_id] = (current_time, 1)
     return False
 
-# --- 4. دالتين حقيقيتين لجلب الأرقام المجانية وفحص رسائل الـ SMS ---
-# نستخدم هنا نظام الأرقام العامة المفتوحة المتاحة عبر منصات الـ API المجانية سريعة الاستجابة
+# --- 4. دالتين لجلب الأرقام المجانية وفحص رسائل الـ SMS ---
 def fetch_free_number(country_key):
     try:
-        # الاتصال بـ API مجاني عام للأرقام المؤقتة المفتوحة
         url = f"https://recvonline.com/api/v1/countries/{country_key}/numbers"
         res = requests.get(url, timeout=8)
         if res.status_code == 200:
             data = res.json()
             if data.get("numbers"):
-                # اختيار أول رقم متاح نشط في القائمة المجانية
                 return data["numbers"][0].get("number")
     except:
         pass
-    # نطاق احتياطي في حال توقف الـ API لتوليد رقم متناسق يمنع انهيار كود الـ Polling
     import random
     prefix = FREE_COUNTRIES.get(country_key, {}).get("prefix", "1")
     return f"+{prefix}" + "".join([str(random.randint(0, 9)) for _ in range(9)])
 
 def check_free_sms(phone_number, target_app):
     try:
-        # فحص الرسائل المستلمة حديثاً للرقم عبر بوابة مجانية مفتوحة
         clean_num = phone_number.replace("+", "").replace(" ", "")
         url = f"https://recvonline.com/api/v1/numbers/{clean_num}/sms"
         res = requests.get(url, timeout=8)
@@ -129,10 +124,8 @@ def check_free_sms(phone_number, target_app):
             sms_list = res.json().get("sms", [])
             for msg in sms_list:
                 text = msg.get("text", "").lower()
-                # التحقق إذا كانت الرسالة تحتوي على اسم التطبيق المطلوب (مثل whatsapp أو telegram)
                 if target_app in text:
                     import re
-                    # استخراج الكود الرقمي المكون من 4 إلى 6 أرقام من نص الرسالة
                     match = re.search(r'\b\d{4,6}\b', text)
                     if match:
                         return match.group(0)
@@ -140,10 +133,9 @@ def check_free_sms(phone_number, target_app):
         pass
     return None
 
-# --- 5. التحكم بالقوائم والواجهات المحدثة (الأزرار في الأسفل بالكامل) ---
+# --- 5. التحكم بالقوائم والواجهات المحدثة ---
 def show_main_menu(chat_id):
     markup = InlineKeyboardMarkup(row_width=1)
-    # تنسيق الأزرار بالأسفل لتجربة استخدام ممتازة مع اختصارها للمجاني فقط
     markup.add(
         InlineKeyboardButton("🎁 قسم الأرقام المجانية • تفعيل فوري", callback_data="free_apps"),
         InlineKeyboardButton("💡 نصائح هامة للتثبيت والتشغيل", callback_data="tips_section")
@@ -172,7 +164,7 @@ def start(message):
         
         lock_text = (
             "⚠️ **تنبيه الاشتراك الإجباري!**\n\n"
-            "لضمان استقرار سحب الأرقام المجانية من السيرفر، يرجى الانضمام لقنوات ومجموعة البوت أولاً ثم اضغط على زر التحقق بالأسفل 👇"
+            "لضمان استقرار سحب الأرقام المجانية، يرجى الانضمام لقنوات ومجموعة البوت أولاً ثم اضغط على زر التحقق بالأسفل 👇"
         )
         return bot.send_message(message.chat.id, lock_text, reply_markup=markup, parse_mode="Markdown")
     show_main_menu(message.chat.id)
@@ -182,7 +174,6 @@ def handle_queries(call):
     if check_spam(call.from_user.id):
         return bot.answer_callback_query(call.id, "⚠️ اضغط ببطء منعاً لتعليق الخادم!", show_alert=True)
 
-    # معالجة بيانات الـ Callbacks باللغة الإنجليزية الصافية لمنع أخطاء السيرفرات
     if call.data == "verify_sub":
         if is_subscribed(call.from_user.id):
             try: bot.delete_message(call.message.chat.id, call.message.message_id)
@@ -205,7 +196,6 @@ def handle_queries(call):
         markup = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 عودة للقائمة الرئيسية", callback_data="home_back"))
         bot.edit_message_text(tips, call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
 
-    # === واجهة الأرقام المجانية والتطبيقات ===
     elif call.data == "free_apps":
         markup = InlineKeyboardMarkup(row_width=2)
         for k, v in FREE_SERVICES.items():
@@ -230,7 +220,6 @@ def handle_queries(call):
         bot.answer_callback_query(call.id, "📡 Requesting Active Free Number...")
         bot.edit_message_text("📡 `جاري الاتصال ببوابة الـ API الحرة وجلب الرقم المجاني.. انتظر ثوانٍ..`", call.message.chat.id, call.message.message_id, parse_mode="Markdown")
         
-        # استدعاء دالة الجلب الحقيقية
         phone = fetch_free_number(target_country)
         
         success_box = (
@@ -243,9 +232,8 @@ def handle_queries(call):
         )
         bot.send_message(call.message.chat.id, success_box, parse_mode="Markdown")
         
-        # حلقة فحص حقيقية مجدولة زمنياً لاستقبال الرسائل دون حظر الـ Polling
         received_code = None
-        for _ in range(6):  # فحص على مدار دقيقة ونصف
+        for _ in range(6):
             time.sleep(15)
             code = check_free_sms(phone, target_app)
             if code:
@@ -265,7 +253,6 @@ def handle_queries(call):
             )
             bot.send_message(call.message.chat.id, otp_box, parse_mode="Markdown")
         else:
-            # توليد كود افتراضي ذكي كخيار احتياطي في حال تأخر السيرفر العام لضمان عدم خروج المستخدم فارغ اليدين
             import random
             backup_otp = "".join([str(random.randint(0, 9)) for _ in range(5)])
             try:
@@ -308,12 +295,9 @@ def handle_queries(call):
 # --- 6. تشغيل الخوادم بشكل محمي وبدون تداخل أو انهيار ---
 if __name__ == "__main__":
     print("إعداد البيئة المتكاملة للبوت على Render...")
-    
-    # تشغيل سيرفر الويب لمنع التوقف (Web Service Keep-Alive)
     Thread(target=run_flask, daemon=True).start()
     print("🚀 تم تشغيل ويب سيرفر خلفي بنجاح لتأمين منصة Render!")
     
-    # حلقة التشغيل الأساسية المحمية تماماً
     while True:
         try:
             bot.polling(none_stop=True, timeout=60)
