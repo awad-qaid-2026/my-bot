@@ -3,24 +3,31 @@ import telebot
 from flask import Flask
 from threading import Thread
 
-# --- جزء الخداع (يمنع إغلاق البوت من Render) ---
+# إعداد تطبيق Flask لاستقبال الاتصال من Render
 app = Flask(__name__)
+
 @app.route('/')
 def home():
-    return "Bot is running"
+    return "Bot is running perfectly!"
 
+# دالة لتشغيل الخادم
 def run():
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
+    # Render يضع رقم المنفذ في متغير بيئة اسمه PORT
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port)
 
-Thread(target=run).start()
+# تشغيل الخادم في خيط (Thread) منفصل
+t = Thread(target=run)
+t.start()
 
-# --- جزء البوت الخاص بك ---
+# --- جزء البوت ---
 API_TOKEN = '8686242492:AAE9yLCQpkCrAbKKWVZ8E6hIRwH6KCeuKcY'
 bot = telebot.TeleBot(API_TOKEN)
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "أهلاً بك! البوت يعمل الآن بنجاح.")
+    bot.reply_to(message, "تم التشغيل بنجاح! البوت يعمل الآن.")
 
-# ابدأ تشغيل البوت
-bot.polling(none_stop=True)
+# تشغيل البوت
+if __name__ == "__main__":
+    bot.polling(none_stop=True)
