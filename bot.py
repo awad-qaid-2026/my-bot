@@ -3,42 +3,38 @@ import telebot
 from flask import Flask
 from threading import Thread
 
-# التوكن الخاص بك
+# التوكن الجديد
 API_TOKEN = '8686242492:AAEdIvv_lOn-Ie-NkausLmxp99nYZ1OjZ1U'
 bot = telebot.TeleBot(API_TOKEN)
 
-# Flask للبقاء نشطاً على Render
+# إعداد سيرفر Flask
 app = Flask(__name__)
-@app.route('/')
-def home(): return "Bot is Alive!"
 
-def run_flask():
+@app.route('/')
+def home():
+    return "Bot is Running 24/7!"
+
+def run_server():
+    # Render يحدد البورت تلقائياً
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port)
 
-# القائمة الرئيسية (كما في الفيديو)
-def main_menu():
-    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    item1 = telebot.types.KeyboardButton('🌐 الدول')
-    item2 = telebot.types.KeyboardButton('👤 تواصل مع المطور')
-    markup.add(item1, item2)
-    return markup
-
+# الأزرار والقوائم
 @bot.message_handler(commands=['start'])
 def start(message):
-    bot.reply_to(message, "مرحباً بك يا صديقي - أنا مطور البوت.\nاختر الدولة من الأزرار بالأسفل.", reply_markup=main_menu())
+    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add('🌐 الدول', '👤 تواصل مع المطور')
+    bot.reply_to(message, "مرحباً بك! البوت يعمل الآن وبدون توقف.", reply_markup=markup)
 
 @bot.message_handler(func=lambda message: message.text == '👤 تواصل مع المطور')
-def contact_dev(message):
-    bot.reply_to(message, "للتواصل مع المطور المقنع: @awad3210")
+def contact(message):
+    bot.reply_to(message, "للتواصل مع المطور: @awad3210")
 
 @bot.message_handler(func=lambda message: message.text == '🌐 الدول')
-def show_countries(message):
-    # هنا أضفنا قائمة الدول التي رأيتها في الفيديو
-    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    markup.add('Iraq 🇮🇶', 'Syria 🇸🇾', 'Palestine 🇵🇸', 'Yemen 🇾🇪')
-    bot.reply_to(message, "اختر الدولة:", reply_markup=markup)
+def countries(message):
+    bot.reply_to(message, "اختر الدولة من الأزرار:\n🇷🇺 روسيا\n🇰🇿 كازاخستان")
 
+# تشغيل السيرفر والبوت
 if __name__ == "__main__":
-    Thread(target=run_flask).start()
+    Thread(target=run_server).start()
     bot.polling(none_stop=True)
