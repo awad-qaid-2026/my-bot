@@ -1,15 +1,18 @@
-import sys
 import os
+# هذا السطر سيقوم بتثبيت المكتبة تلقائياً عند بدء التشغيل إذا لم تكن موجودة
+os.system("pip install beautifulsoup4")
+
+import sys
 import time
 import re
 from threading import Thread
-import concurrent.futures  
+import concurrent.futures   
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask
-from urllib.parse import quote  
+from urllib.parse import quote   
 
 # --- 1. SYSTEM ENCODING FORCE ---
 try:
@@ -49,7 +52,7 @@ def keep_alive():
 API_TOKEN = '8686242492:AAH9V_N0TWhP_06b_F40Y3vL9lKk7gNxZBo'
 API_5SIM_KEY = 'ضع_مفتاح_الـ_API_الخاص_بموقع_5sim_هنا' 
 ADMIN_ID = 8388141188 
-CHANNEL_LOG_ID = "@Awad_Numbers_Bot"  
+CHANNEL_LOG_ID = "@Awad_Numbers_Bot"   
 
 bot = telebot.TeleBot(API_TOKEN)
 HEADERS_5SIM = {
@@ -226,12 +229,10 @@ def show_paid_services(chat_id):
 # --- 8. CALLBACK HANDLER ---
 @bot.callback_query_handler(func=lambda call: True)
 def handle_queries(call):
-    # (تم اختصار الأجزاء المتكررة لضمان عدم وجود أخطاء، يعمل بنفس المنطق)
     if call.data == "verify":
         show_main_menu(call.message.chat.id)
     elif call.data == "back_home":
         show_main_menu(call.message.chat.id)
-    # باقي المنطق الخاص بـ 5sim و Scraper موجود هنا بنفس التنسيق
 
 # --- 9. INITIALIZE ---
 if __name__ == "__main__":
