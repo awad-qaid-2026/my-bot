@@ -1,23 +1,15 @@
 import sys, os, time, re, requests, telebot, concurrent.futures
 from threading import Thread
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove
-from bs4 import BeautifulSoup
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from flask import Flask
-from urllib.parse import quote
 
 # --- CONFIGURATIONS ---
 API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
-API_5SIM_KEY = 'ضع_مفتاح_الـ_API_الخاص_بموقع_5sim_هنا' 
 ADMIN_ID = 8388141188 
 CHANNEL_LOG_ID = "@Awad_Numbers_Bot"  
+DEVELOPER_URL = "https://t.me/awad3210" # رابط التواصل معك
 
-# القنوات (تأكد أن البوت مشرف فيها)
 CHANNELS = ['@v_o_lti', '@breakthroughawad210', '@Awad_Numbers_Bot']
-SUBSCRIPTION_LINKS = [
-    {"name": "📢 قناة العالم بين يديك", "url": "https://t.me/v_o_lti"},
-    {"name": "📢 قناة التعليم", "url": "https://t.me/breakthroughawad210"},
-    {"name": "📢 قناة الأرقام", "url": "https://t.me/Awad_Numbers_Bot"}
-]
 
 bot = telebot.TeleBot(API_TOKEN)
 
@@ -34,7 +26,13 @@ def self_ping():
         except: pass
         time.sleep(600)
 
-# --- SUBSCRIPTION ---
+# --- HELPER FUNCTIONS ---
+def mask_number(number):
+    # إخفاء آخر 3 أرقام
+    if len(number) > 3:
+        return number[:-3] + "***"
+    return number
+
 def is_subscribed(user_id):
     if user_id == ADMIN_ID: return True
     for ch in CHANNELS:
@@ -49,36 +47,48 @@ def is_subscribed(user_id):
 def start(message):
     if not is_subscribed(message.from_user.id):
         markup = InlineKeyboardMarkup(row_width=1)
-        for item in SUBSCRIPTION_LINKS:
-            markup.add(InlineKeyboardButton(item["name"], url=item["url"]))
+        markup.add(InlineKeyboardButton("📢 قناة العالم بين يديك", url="https://t.me/v_o_lti"))
+        markup.add(InlineKeyboardButton("📢 قناة التعليم", url="https://t.me/breakthroughawad210"))
+        markup.add(InlineKeyboardButton("📢 قناة الأرقام", url="https://t.me/Awad_Numbers_Bot"))
         markup.add(InlineKeyboardButton("✅ تم الاشتراك، دخول البوت", callback_data="verify"))
-        return bot.send_message(message.chat.id, "⚠️ يجب الاشتراك في قنواتنا أولاً:", reply_markup=markup)
+        return bot.send_message(message.chat.id, "⚠️ يجب الاشتراك في القنوات أولاً:", reply_markup=markup)
     
     show_main_menu(message.chat.id)
 
 def show_main_menu(chat_id):
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(
-        InlineKeyboardButton("🛍️ قسم الأرقام المدفوعة", callback_data="section_paid"),
-        InlineKeyboardButton("🌐 قسم الأرقام المجانية", callback_data="section_free")
+    markup.add(InlineKeyboardButton("🌐 جلب رقم مجاني", callback_data="get_number"))
+    markup.add(InlineKeyboardButton("👨‍💻 تواصل مع مطور البوت", url=DEVELOPER_URL))
+    bot.send_message(chat_id, "👑 أهلاً بك في بوت المقنع للأرقام.\nاختر الخدمة:", reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data == "verify")
+def verify(call):
+    if is_subscribed(call.from_user.id):
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+        show_main_menu(call.message.chat.id)
+    else:
+        bot.answer_callback_query(call.id, "❌ لم تشترك في جميع القنوات!", show_alert=True)
+
+@bot.callback_query_handler(func=lambda call: call.data == "get_number")
+def get_number(call):
+    # مثال لرقم يتم سحبه
+    raw_number = "967733048517"
+    masked = mask_number(raw_number)
+    otp = "551482"
+    
+    # رسالة للمستخدم
+    msg = f"📱 الرقم: `{masked}`\n🔑 الكود: `{otp}`"
+    bot.send_message(call.message.chat.id, msg, parse_mode="Markdown")
+    
+    # إرسال للقناة (الجروب) بنفس التنسيق
+    log_msg = (
+        f"✨ **تم استلام كود جديد**\n"
+        f"📱 الرقم: `{masked}`\n"
+        f"🔑 الكود: `{otp}`\n"
+        f"➖➖➖➖➖➖➖"
     )
-    bot.send_message(chat_id, "👑 أهلاً بك في بوت المقنع. اختر القسم:", reply_markup=markup)
+    bot.send_message(CHANNEL_LOG_ID, log_msg, parse_mode="Markdown")
 
-@bot.callback_query_handler(func=lambda call: True)
-def handle_queries(call):
-    if call.data == "verify":
-        if is_subscribed(call.from_user.id):
-            try: bot.delete_message(call.message.chat.id, call.message.message_id)
-            except: pass
-            show_main_menu(call.message.chat.id)
-        else:
-            bot.answer_callback_query(call.id, "❌ لم تشترك في القنوات!", show_alert=True)
-    elif call.data == "section_paid":
-        bot.answer_callback_query(call.id, "جاري فتح القسم المدفوع...")
-    elif call.data == "section_free":
-        bot.answer_callback_query(call.id, "جاري فتح القسم المجاني...")
-
-# --- RUN ---
 if __name__ == "__main__":
     Thread(target=run).start()
     Thread(target=self_ping).start()
