@@ -11,57 +11,42 @@ from bs4 import BeautifulSoup
 from flask import Flask
 from urllib.parse import quote  
 
-# --- 1. SYSTEM ENCODING ---
-try:
-    sys.stdout.reconfigure(encoding='utf-8')
-    sys.stderr.reconfigure(encoding='utf-8')
-except AttributeError:
-    import codecs
-    sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
-    sys.stderr = codecs.getwriter("utf-8")(sys.stderr.detach())
+# --- 1. CONFIGURATIONS ---
+API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
+API_5SIM_KEY = 'ضع_مفتاح_الـ_API_الخاص_بموقع_5sim_هنا' 
+ADMIN_ID = 8388141188 
+CHANNEL_LOG_ID = "@Awad_Numbers_Bot"  
 
-# --- 2. KEEP ALIVE SYSTEM ---
+bot = telebot.TeleBot(API_TOKEN)
+
+# قنوات الاشتراك الإجباري (يجب أن يكون البوت مشرفاً فيها)
+CHANNELS = ['@v_o_lti', '@breakthroughawad210', '@Awad_Numbers_Bot']
+SUBSCRIPTION_LINKS = [
+    {"name": "📢 قناة العالم بين يديك", "url": "https://t.me/v_o_lti"},
+    {"name": "📢 قناة التعليم", "url": "https://t.me/breakthroughawad210"},
+    {"name": "📢 قناة الأرقام", "url": "https://t.me/Awad_Numbers_Bot"}
+]
+
+# --- 2. KEEP ALIVE & SERVER ---
 app = Flask('')
 @app.route('/')
 def home():
-    return "⚡ Al-Moqana Server is Active! ⚡"
+    return "⚡ Al-Moqana Server Active ⚡"
 
 def run():
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))
+
+def self_ping():
+    while True:
+        try: requests.get("https://al-moqana.onrender.com", timeout=10)
+        except: pass
+        time.sleep(600)
 
 def keep_alive():
     Thread(target=run).start()
+    Thread(target=self_ping).start()
 
-# --- 3. CONFIGURATIONS ---
-API_TOKEN = '8686242492:AAEdIvv_l0n-Ie-NkausLmxp9nYZ10jZ1U'
-API_5SIM_KEY = 'ضع_مفتاح_الـ_API_الخاص_بموقع_5sim_هنا' 
-ADMIN_ID = 8388141188 
-CHANNEL_LOG_ID = "@YE_I0"  
-
-bot = telebot.TeleBot(API_TOKEN)
-HEADERS_5SIM = {'Authorization': f'Bearer {API_5SIM_KEY}', 'Accept': 'application/json'}
-DEVELOPER_URL = "https://t.me/awad3210"
-
-# قنوات الاشتراك الإجباري
-CHANNELS = ['@YE_I0', '@lklko1', '@YEER1'] 
-SUBSCRIPTION_LINKS = [
-    {"name": "📢 القناة الأولى", "url": "https://t.me/YE_I0"},
-    {"name": "📢 القناة الثانية", "url": "https://t.me/lklko1"},
-    {"name": "📢 القناة الثالثة", "url": "https://t.me/YEER1"}
-]
-
-SERVICES_PAID = {
-    "whatsapp": {"name": "🟢 WhatsApp", "code": "whatsapp"},
-    "telegram": {"name": "🔵 Telegram", "code": "telegram"}
-}
-
-COUNTRIES_DATA = {
-    "usa": {"name": "🇺🇸 USA", "slug": "usa", "code": "1"},
-    "yemen": {"name": "🇾🇪 Yemen", "slug": "yemen", "code": "967"}
-}
-
-# --- 4. HELPERS ---
+# --- 3. HELPERS & SUBSCRIPTION ---
 def is_subscribed(user_id):
     if user_id == ADMIN_ID: return True
     for ch in CHANNELS:
@@ -71,15 +56,10 @@ def is_subscribed(user_id):
         except: continue
     return True
 
-# --- 5. MAIN MENU ---
-def show_main_menu(chat_id):
-    markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(
-        InlineKeyboardButton("🛍️ قسم الأرقام المدفوعة", callback_data="section_paid"),
-        InlineKeyboardButton("🌐 قسم الأرقام المجانية", callback_data="section_free")
-    )
-    bot.send_message(chat_id, "👑 أهلاً بك في بوت المقنع للأرقام.\nاختر القسم:", reply_markup=markup)
+# (بقية الدوال المساعدة و scrape_single_source و fetch_all_sources_fast كما في كودك)
+# ... [ملاحظة: احتفظ بنفس دوال scrap التي كانت في كودك] ...
 
+# --- 4. HANDLERS ---
 @bot.message_handler(commands=['start'])
 def start(message):
     if not is_subscribed(message.from_user.id):
@@ -87,7 +67,7 @@ def start(message):
         for item in SUBSCRIPTION_LINKS:
             markup.add(InlineKeyboardButton(item["name"], url=item["url"]))
         markup.add(InlineKeyboardButton("✅ تم الاشتراك، دخول البوت", callback_data="verify"))
-        return bot.send_message(message.chat.id, "⚠️ يجب الاشتراك في القنوات أولاً:", reply_markup=markup)
+        return bot.send_message(message.chat.id, "⚠️ **يجب الاشتراك في القنوات أولاً لاستخدام البوت:**", reply_markup=markup, parse_mode="Markdown")
     
     show_main_menu(message.chat.id)
 
@@ -99,10 +79,11 @@ def handle_queries(call):
             show_main_menu(call.message.chat.id)
         else:
             bot.answer_callback_query(call.id, "❌ لم تشترك في جميع القنوات!", show_alert=True)
-    elif call.data == "section_paid":
-        bot.edit_message_text("جاري العمل على قسم المدفوع...", call.message.chat.id, call.message.message_id)
+            
+    # [بقية معالجات الأزرار للأرقام المجانية والمدفوعة كما في كودك الأصلي]
+    # تأكد من نقل كل الدوال (handle_queries, show_main_menu) من كودك السابق هنا
+    pass
 
-# --- 6. RUN ---
 if __name__ == "__main__":
     keep_alive()
     bot.infinity_polling()
