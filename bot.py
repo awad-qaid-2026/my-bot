@@ -5,13 +5,13 @@ from bs4 import BeautifulSoup
 from flask import Flask
 from urllib.parse import quote
 
-# --- 1. CONFIGURATIONS ---
+# --- CONFIGURATIONS ---
 API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
 API_5SIM_KEY = 'ضع_مفتاح_الـ_API_الخاص_بموقع_5sim_هنا' 
 ADMIN_ID = 8388141188 
 CHANNEL_LOG_ID = "@Awad_Numbers_Bot"  
 
-# القنوات المطلوبة للاشتراك الإجباري
+# القنوات (تأكد أن البوت مشرف فيها)
 CHANNELS = ['@v_o_lti', '@breakthroughawad210', '@Awad_Numbers_Bot']
 SUBSCRIPTION_LINKS = [
     {"name": "📢 قناة العالم بين يديك", "url": "https://t.me/v_o_lti"},
@@ -21,7 +21,7 @@ SUBSCRIPTION_LINKS = [
 
 bot = telebot.TeleBot(API_TOKEN)
 
-# --- 2. KEEP ALIVE (لا ينام أبداً) ---
+# --- KEEP ALIVE ---
 app = Flask('')
 @app.route('/')
 def home(): return "Bot is Active!"
@@ -32,9 +32,9 @@ def self_ping():
     while True:
         try: requests.get("https://al-moqana.onrender.com", timeout=10)
         except: pass
-        time.sleep(600) # يرسل إشارة كل 10 دقائق
+        time.sleep(600)
 
-# --- 3. SUBSCRIPTION SYSTEM ---
+# --- SUBSCRIPTION ---
 def is_subscribed(user_id):
     if user_id == ADMIN_ID: return True
     for ch in CHANNELS:
@@ -44,7 +44,7 @@ def is_subscribed(user_id):
         except: return False
     return True
 
-# --- 4. HANDLERS ---
+# --- HANDLERS ---
 @bot.message_handler(commands=['start'])
 def start(message):
     if not is_subscribed(message.from_user.id):
@@ -52,26 +52,9 @@ def start(message):
         for item in SUBSCRIPTION_LINKS:
             markup.add(InlineKeyboardButton(item["name"], url=item["url"]))
         markup.add(InlineKeyboardButton("✅ تم الاشتراك، دخول البوت", callback_data="verify"))
-        return bot.send_message(message.chat.id, "⚠️ يجب الاشتراك في القنوات التالية أولاً:", reply_markup=markup)
+        return bot.send_message(message.chat.id, "⚠️ يجب الاشتراك في قنواتنا أولاً:", reply_markup=markup)
     
-    # إذا كان مشتركاً، يظهر المنيو
     show_main_menu(message.chat.id)
-
-@bot.callback_query_handler(func=lambda call: True)
-def handle_queries(call):
-    if call.data == "verify":
-        if is_subscribed(call.from_user.id):
-            try: bot.delete_message(call.message.chat.id, call.message.message_id)
-            except: pass
-            show_main_menu(call.message.chat.id)
-        else:
-            bot.answer_callback_query(call.id, "❌ لم تشترك في جميع القنوات!", show_alert=True)
-    
-    # هنا ضع باقي منطق الكود الخاص بك (الأرقام والمدفوع)
-    # ملاحظة: يمكنك لصق باقي دوال القسم المجاني والمدفوع التي أرسلتها سابقاً هنا
-    elif call.data == "section_free":
-        bot.answer_callback_query(call.id, "جاري فتح قسم الأرقام المجانية...")
-        # (أكمل هنا باقي الدوال...)
 
 def show_main_menu(chat_id):
     markup = InlineKeyboardMarkup(row_width=1)
@@ -81,7 +64,21 @@ def show_main_menu(chat_id):
     )
     bot.send_message(chat_id, "👑 أهلاً بك في بوت المقنع. اختر القسم:", reply_markup=markup)
 
-# --- 5. RUN ---
+@bot.callback_query_handler(func=lambda call: True)
+def handle_queries(call):
+    if call.data == "verify":
+        if is_subscribed(call.from_user.id):
+            try: bot.delete_message(call.message.chat.id, call.message.message_id)
+            except: pass
+            show_main_menu(call.message.chat.id)
+        else:
+            bot.answer_callback_query(call.id, "❌ لم تشترك في القنوات!", show_alert=True)
+    elif call.data == "section_paid":
+        bot.answer_callback_query(call.id, "جاري فتح القسم المدفوع...")
+    elif call.data == "section_free":
+        bot.answer_callback_query(call.id, "جاري فتح القسم المجاني...")
+
+# --- RUN ---
 if __name__ == "__main__":
     Thread(target=run).start()
     Thread(target=self_ping).start()
