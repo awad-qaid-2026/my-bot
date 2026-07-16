@@ -7,7 +7,7 @@ from flask import Flask
 API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
 ADMIN_ID = 8388141188 
 CHANNEL_LOG_ID = "@Awad_Numbers_Bot"  
-DEVELOPER_URL = "https://t.me/awad3210" # رابط التواصل معك
+DEVELOPER_URL = "https://t.me/awad3210" 
 
 CHANNELS = ['@v_o_lti', '@breakthroughawad210', '@Awad_Numbers_Bot']
 
@@ -26,12 +26,9 @@ def self_ping():
         except: pass
         time.sleep(600)
 
-# --- HELPER FUNCTIONS ---
+# --- FUNCTIONS ---
 def mask_number(number):
-    # إخفاء آخر 3 أرقام
-    if len(number) > 3:
-        return number[:-3] + "***"
-    return number
+    return number[:-3] + "***" if len(number) > 3 else number
 
 def is_subscribed(user_id):
     if user_id == ADMIN_ID: return True
@@ -52,13 +49,12 @@ def start(message):
         markup.add(InlineKeyboardButton("📢 قناة الأرقام", url="https://t.me/Awad_Numbers_Bot"))
         markup.add(InlineKeyboardButton("✅ تم الاشتراك، دخول البوت", callback_data="verify"))
         return bot.send_message(message.chat.id, "⚠️ يجب الاشتراك في القنوات أولاً:", reply_markup=markup)
-    
     show_main_menu(message.chat.id)
 
 def show_main_menu(chat_id):
-    markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton("🌐 جلب رقم مجاني", callback_data="get_number"))
-    markup.add(InlineKeyboardButton("👨‍💻 تواصل مع مطور البوت", url=DEVELOPER_URL))
+    markup = InlineKeyboardMarkup(row_width=2)
+    markup.add(InlineKeyboardButton("🌐 جلب رقم", callback_data="get_number"),
+               InlineKeyboardButton("👨‍💻 المطور", url=DEVELOPER_URL))
     bot.send_message(chat_id, "👑 أهلاً بك في بوت المقنع للأرقام.\nاختر الخدمة:", reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: call.data == "verify")
@@ -67,27 +63,34 @@ def verify(call):
         bot.delete_message(call.message.chat.id, call.message.message_id)
         show_main_menu(call.message.chat.id)
     else:
-        bot.answer_callback_query(call.id, "❌ لم تشترك في جميع القنوات!", show_alert=True)
+        bot.answer_callback_query(call.id, "❌ اشترك في القنوات أولاً!", show_alert=True)
 
 @bot.callback_query_handler(func=lambda call: call.data == "get_number")
 def get_number(call):
-    # مثال لرقم يتم سحبه
     raw_number = "967733048517"
     masked = mask_number(raw_number)
     otp = "551482"
     
-    # رسالة للمستخدم
-    msg = f"📱 الرقم: `{masked}`\n🔑 الكود: `{otp}`"
-    bot.send_message(call.message.chat.id, msg, parse_mode="Markdown")
-    
-    # إرسال للقناة (الجروب) بنفس التنسيق
-    log_msg = (
-        f"✨ **تم استلام كود جديد**\n"
-        f"📱 الرقم: `{masked}`\n"
-        f"🔑 الكود: `{otp}`\n"
-        f"➖➖➖➖➖➖➖"
+    # تنسيق الرسالة (النسخة)
+    msg_text = (
+        f"🌟━━━━━━━━━━━━━━🌟\n"
+        f"✨ **Messga OTP Received** ✨\n"
+        f"⚙️ **Service:** FACEBOOK\n"
+        f"☎️ **Number:** `{masked}`\n"
+        f"🌍 **Country:** Yemen 🇾🇪\n\n"
+        f"➡️ 📱 **OTP Code:** `{otp}`\n"
+        f"🌟━━━━━━━━━━━━━━🌟"
     )
-    bot.send_message(CHANNEL_LOG_ID, log_msg, parse_mode="Markdown")
+    
+    # إرسال للمستخدم
+    bot.send_message(call.message.chat.id, msg_text, parse_mode="Markdown")
+    
+    # إرسال للقناة (مع أزرار النسخ)
+    markup = InlineKeyboardMarkup(row_width=2)
+    markup.add(InlineKeyboardButton("Get Number 12", callback_data="get_number"),
+               InlineKeyboardButton("Join Group ⭕", url="https://t.me/Awad_Numbers_Bot"))
+    
+    bot.send_message(CHANNEL_LOG_ID, msg_text, parse_mode="Markdown", reply_markup=markup)
 
 if __name__ == "__main__":
     Thread(target=run).start()
