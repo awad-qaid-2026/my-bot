@@ -1,4 +1,4 @@
-import sys
+mport sys
 import os
 import time
 import re
@@ -62,9 +62,11 @@ DEVELOPER_URL = "https://t.me/awad3210"
 
 CHANNELS = ['@Awad_Numbers_Bot', '@jzbznznx', '@sn6hdbdn19dndw'] 
 SUBSCRIPTION_LINKS = [
-    {"name": "📢 قناة البوت الرسمية", "url": "https://t.me/Awad_Numbers_Bot"},
-    {"name": "📢 قناة عبارات بشكل عام", "url": "https://t.me/jzbznznx"},
-    {"name": "📢 قناة الدعم الاحتياطية", "url": "https://t.me/sn6hdbdn19dndw"},
+    {"name": "📢 قناه اختراق الشبكه ", "url": "https://t.me/breakthroughawad210"},
+    {"name":" 😋قناه احتياطي", "url": "https://t.me/sn6hdbdn19dndw"},
+
+    {"name": "📢 قناة  بشكل عام", "url": "https://t.me/v_o_lti"},
+    {"name": "📢 قناة الاكواد", "url": "https://t.me/Awad_Numbers_Bot"},
     {"name": "💬 جروب المناقشة والتبادل", "url": "https://t.me/+ohwA2pwywVxhOTVk"}
 ]
 
@@ -112,9 +114,7 @@ def is_subscribed(user_id):
             status = bot.get_chat_member(ch, user_id).status
             if status in ['left', 'kicked']: return False
         except: continue
-    return True
-
-def check_spam(user_id):
+    return Truedef check_spam(user_id):
     current_time = time.time()
     if user_id in user_last_action:
         last_time, count = user_last_action[user_id]
@@ -182,7 +182,7 @@ def show_main_menu(chat_id):
     markup.add(InlineKeyboardButton("⚙️ لوحة التحكم للمطور", callback_data="admin_panel"))
     
     welcome_text = (
-        "👑 **مرحباً بك في نظام المقنع لإدارة وتفعيل الأرقام**\n\n"
+        "👑 مرحباً بك في نظام المقنع لإدارة وتفعيل الأرقام\n\n"
         "🎯 *تستطيع الآن اقتناص أرقام مجانية أو مدفوعة لتفعيل الواتساب، التليجرام، الفيسبوك، والانستغرام بثوانٍ.*\n\n"
         "👇 اختر القسم الذي تريده من الأسفل:"
     )
@@ -195,8 +195,7 @@ def start(message):
         markup = InlineKeyboardMarkup(row_width=1)
         for item in SUBSCRIPTION_LINKS:
             markup.add(InlineKeyboardButton(item["name"], url=item["url"]))
-        markup.add(InlineKeyboardButton("✨ تم الاشتراك، دخول البوت ✅", callback_data="verify"))
-        return bot.send_message(message.chat.id, "⚠️ **يجب عليك الاشتراك في قنوات البوت أولاً لتفعيله:**", reply_markup=markup, parse_mode="Markdown")
+        markup.add(InlineKeyboardButton("✨ تم الاشتراك، دخول البوت ✅", callback_data="verify"))return bot.send_message(message.chat.id, "⚠️ يجب عليك الاشتراك في قنوات البوت أولاً لتفعيله:", reply_markup=markup, parse_mode="Markdown")
     
     remove_old_keyboard = ReplyKeyboardRemove()
     bot.send_message(message.chat.id, "🔄 جاري تهيئة الواجهة...", reply_markup=remove_old_keyboard)
@@ -222,10 +221,10 @@ def handle_queries(call):
 
     elif call.data == "activation_tips":
         tips = (
-            "💡 **دليل المقنع لتثبيت وتفعيل الأرقام بنجاح:**\n\n"
+            "💡 دليل المقنع لتثبيت وتفعيل الأرقام بنجاح:\n\n"
             "1️⃣ لتثبيت رقم واتساب دون حظر، استخدم نسخة *WhatsApp Business* رسمية.\n"
             "2️⃣ عند طلب كود الحساب انتظر العداد حتى ينتهي تماماً ولا تضغط 'إعادة إرسال' بسرعة.\n"
-            "3️⃣ ننصحك دائماً بـ **القسم المدفوع** للحصول على رقم خاص ومحمي لك بالكامل."
+            "3️⃣ ننصحك دائماً بـ القسم المدفوع للحصول على رقم خاص ومحمي لك بالكامل."
         )
         markup = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 عودة للقائمة الرئيسية", callback_data="back_home"))
         bot.edit_message_text(tips, call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
@@ -235,7 +234,7 @@ def handle_queries(call):
         for k, v in SERVICES_PAID.items():
             markup.add(InlineKeyboardButton(v["name"], callback_data=f"p_app_{k}"))
         markup.add(InlineKeyboardButton("🔙 عودة", callback_data="back_home"))
-        bot.edit_message_text("🛍️ **اختر التطبيق المطلوب للحصول على رقم مدفوع ومضمون من 5sim:**", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+        bot.edit_message_text("🛍️ اختر التطبيق المطلوب للحصول على رقم مدفوع ومضمون من 5sim:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data.startswith("p_app_"):
         app_name = call.data.replace("p_app_", "")
@@ -243,12 +242,12 @@ def handle_queries(call):
         for k, v in COUNTRIES_DATA.items():
             markup.add(InlineKeyboardButton(v["name"], callback_data=f"p_order_{app_name}_{k}"))
         markup.add(InlineKeyboardButton("🔙 عودة", callback_data="section_paid"))
-        bot.edit_message_text("🌍 **اختر الدولة المطلوبة لسحب رقمك الحصري:**", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+        bot.edit_message_text("🌍 اختر الدولة المطلوبة لسحب رقمك الحصري:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data.startswith("p_order_"):
         parts = call.data.split("_")
         target_app, target_country = parts[2], parts[3]
-        bot.edit_message_text("📡 `جاري جلب الرقم الحصري من بوابة 5sim.. انتظر ثوانٍ..`", call.message.chat.id, call.message.message_id, parse_mode="Markdown")
+        bot.edit_message_text("📡 جاري جلب الرقم الحصري من بوابة 5sim.. انتظر ثوانٍ..", call.message.chat.id, call.message.message_id, parse_mode="Markdown")
         
         url_order = f"https://5sim.net/v1/user/buy/activation/{quote(target_country)}/any/{quote(target_app)}"
         try:
@@ -259,11 +258,10 @@ def handle_queries(call):
                 final_price = round(price + PROFIT_MARGIN, 2)
                 
                 success_box = (
-                    "🎉 **تم سحب الرقم المدفوع بنجاح!**\n\n"
-                    f"📱 **التطبيق:** `{target_app.upper()}`\n"
-                    f"🌍 **الدولة:** `{target_country.upper()}`\n"
-                    f"💵 **التكلفة:** `{final_price} $`\n\n"
-                    f"📞 **الرقم (اضغط للنسخ):**\n`{phone}`\n\n"
+                    "🎉 تم سحب الرقم المدفوع بنجاح!\n\n"
+                    f"📱 التطبيق: {target_app.upper()}\n"
+                    f"🌍 الدولة: {target_country.upper()}\n"
+                    f"💵 التكلفة: {final_price} $\n\n"f"📞 الرقم (اضغط للنسخ):\n{phone}\n\n"
                     "طلب الكود في التطبيق وانتظر هنا، السيرفر يفحص التفعيل تلقائياً..."
                 )
                 bot.send_message(call.message.chat.id, success_box, parse_mode="Markdown")
@@ -274,9 +272,9 @@ def handle_queries(call):
                     if check_res.get("sms"):
                         sms_code = str(check_res["sms"][0].get("code"))
                         try:
-                            bot.send_message(CHANNEL_LOG_ID, f"🔥 **تفعيل مدفوع جديد:**\n📞 الرقم: `{phone}`\n📱 الخدمة: `{target_app.upper()}`\n🔑 الكود: `{sms_code}`")
+                            bot.send_message(CHANNEL_LOG_ID, f"🔥 تفعيل مدفوع جديد:\n📞 الرقم: {phone}\n📱 الخدمة: {target_app.upper()}\n🔑 الكود: {sms_code}")
                         except: pass
-                        return bot.send_message(call.message.chat.id, f"🔥 **وصل كود التفعيل الآن:**\n\n📞 الرقم: `{phone}`\n🔑 كود الـ OTP: `{sms_code}`", parse_mode="Markdown")
+                        return bot.send_message(call.message.chat.id, f"🔥 وصل كود التفعيل الآن:\n\n📞 الرقم: {phone}\n🔑 كود الـ OTP: {sms_code}", parse_mode="Markdown")
                 bot.send_message(call.message.chat.id, "❌ انتهى الوقت ولم يصل كود. تم إلغاء الطلب مجاناً.")
             else:
                 bot.send_message(call.message.chat.id, "❌ الأرقام ممتلئة أو السيرفر غير مشحون برصيد 5sim.")
@@ -292,7 +290,7 @@ def handle_queries(call):
             InlineKeyboardButton("📸 Instagram / انستغرام", callback_data="fsvc_instagram_📸")
         )
         markup.add(InlineKeyboardButton("🔙 عودة للقائمة الرئيسية", callback_data="back_home"))
-        bot.edit_message_text("🌐 **قسم الأرقام المجانية المحدث تلقائياً:**\n\nاختر الخدمة المطلوبة لعرض الدول المتاحة لها:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+        bot.edit_message_text("🌐 قسم الأرقام المجانية المحدث تلقائياً:\n\nاختر الخدمة المطلوبة لعرض الدول المتاحة لها:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data.startswith("fsvc_"):
         _, name, icon = call.data.split("_")
@@ -304,7 +302,7 @@ def handle_queries(call):
             
         markup.add(*btns)
         markup.add(InlineKeyboardButton("🔙 عودة", callback_data="section_free"))
-        bot.edit_message_text(f"{icon} **تفعيل خدمات {name} المجانية**\n\n🌍 اختر الدولة لسحب الرقم المتاح فوراً:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+        bot.edit_message_text(f"{icon} تفعيل خدمات {name} المجانية\n\n🌍 اختر الدولة لسحب الرقم المتاح فوراً:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data.startswith("fget_"):
         parts = call.data.split("_")
@@ -325,34 +323,32 @@ def handle_queries(call):
                 markup.add(InlineKeyboardButton(f"{icon} {n}", callback_data=f"fotp_{n}_{svc}"))
             markup.add(InlineKeyboardButton("🔙 رجوع لقائمة الدول", callback_data="fsvc_{svc}_{icon}"))
             
-            bot.edit_message_text(f"✅ **تم اقتناص الأرقام المجانية الحية لـ {svc}:**\n\nاضغط على الرقم المطلوب لمراقبته وقراءة الكود تلقائياً:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+            bot.edit_message_text(f"✅ تم اقتناص الأرقام المجانية الحية لـ {svc}:\n\nاضغط على الرقم المطلوب لمراقبته وقراءة الكود تلقائياً:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
         else:
-            bot.answer_callback_query(call.id, "❌ عذراً، السيرفرات ممتلئة لهذه الدولة حالياً. يرجى تجربة دولة أخرى.", show_alert=True)
-
-    elif call.data.startswith("fotp_"):
+            bot.answer_callback_query(call.id, "❌ عذراً، السيرفرات ممتلئة لهذه الدولة حالياً. يرجى تجربة دولة أخرى.", show_alert=True)elif call.data.startswith("fotp_"):
         _, target_phone, target_svc = call.data.split("_")
         bot.answer_callback_query(call.id, "📡 جاري فحص الرسائل المستلمة حديثاً للرقم...")
         
         time.sleep(2)
         dummy_free_otp = "551482"  
         try:
-            bot.send_message(CHANNEL_LOG_ID, f"🌐 **كود تفعيل مجاني جديد:**\n\n📞 الرقم: `{target_phone}`\n📱 الخدمة: `{target_svc.upper()}`\n🔑 الكود: `{dummy_free_otp}`")
+            bot.send_message(CHANNEL_LOG_ID, f"🌐 كود تفعيل مجاني جديد:\n\n📞 الرقم: {target_phone}\n📱 الخدمة: {target_svc.upper()}\n🔑 الكود: {dummy_free_otp}")
         except: pass
             
         free_otp_box = (
-            f"📢 **وصل كود التفعيل المجاني المستهدف:**\n\n"
-            f"📞 الرقم: `{target_phone}`\n"
-            f"🔑 كود الـ OTP: `{dummy_free_otp}`\n\n"
+            f"📢 وصل كود التفعيل المجاني المستهدف:\n\n"
+            f"📞 الرقم: {target_phone}\n"
+            f"🔑 كود الـ OTP: {dummy_free_otp}\n\n"
             f"تم إرسال نسخة من التفعيل كاملاً إلى قناتنا الرسمية: {CHANNEL_LOG_ID}"
         )
         bot.send_message(call.message.chat.id, free_otp_box, parse_mode="Markdown")
 
     elif call.data == "my_account":
         account_text = (
-            "💎 **لوحة البيانات الشخصية للمشترك:**\n\n"
-            f"🆔 **معرف الحساب:** `{call.from_user.id}`\n"
-            f"💰 **رصيدك الحالي:** `0.00 $`\n"
-            f"🟢 **حالة الاتصال:** آمن ومستقر جداً"
+            "💎 لوحة البيانات الشخصية للمشترك:\n\n"
+            f"🆔 معرف الحساب: {call.from_user.id}\n"
+            f"💰 رصيدك الحالي: 0.00 $\n"
+            f"🟢 حالة الاتصال: آمن ومستقر جداً"
         )
         markup = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 عودة", callback_data="back_home"))
         bot.edit_message_text(account_text, call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
@@ -362,10 +358,10 @@ def handle_queries(call):
             return bot.answer_callback_query(call.id, "❌ عذراً! هذه اللوحة محمية وخاصة بمالك البوت فقط.", show_alert=True)
         count = get_users_count()  
         markup = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 عودة", callback_data="back_home"))
-        bot.edit_message_text(f"⚙️ **لوحة التحكم للمطور:**\n\n👥 إجمالي المشتركين: `{count}` عضو.", call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
+        bot.edit_message_text(f"⚙️ لوحة التحكم للمطور:\n\n👥 إجمالي المشتركين: {count} عضو.", call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
 
 # --- 7. INITIALIZE ---
-if __name__ == "__main__":
+if name == "main":
     keep_alive()
     print("Bot engine is running clean with zero obsolete buttons.")
     while True:
