@@ -48,8 +48,8 @@ def keep_alive():
 # --- 3. BOT CONFIGURATIONS & KEYS ---
 API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
 API_5SIM_KEY = 'ضع_مفتاح_الـ_API_الخاص_بموقع_5sim_هنا' 
-ADMIN_ID = 8388141188 
-CHANNEL_LOG_ID = "@Awad_Numbers_Bot"  
+ADMIN_ID =  
+CHANNEL_LOG_ID =8686242492 "@Awad_Numbers_Bot"  
 
 bot = telebot.TeleBot(API_TOKEN)
 HEADERS_5SIM = {
