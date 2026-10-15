@@ -35,7 +35,7 @@ def self_ping():
     time.sleep(60)
     while True:
         try:
-            requests.get("https://al-moqana.onrender.com", timeout=10)
+            requests.get("https://my-bot-p6kw.onrender.com", timeout=10)
             print("Server self-ping success!")
         except Exception as e:
             print(f"Ping error: {e}")
@@ -46,10 +46,10 @@ def keep_alive():
     Thread(target=self_ping).start()
 
 # --- 3. BOT CONFIGURATIONS & KEYS ---
-API_TOKEN = '8686242492:AAHg-MIu67d9yPz0HhadvmSMdGclbunqyH4'
+API_TOKEN = '8686242492:AAEdIvv_lOn-Ie-NkausLmxp99nYZ1OjZ1U'
 API_5SIM_KEY = 'ضع_مفتاح_الـ_API_الخاص_بموقع_5sim_هنا' 
-ADMIN_ID =  
-CHANNEL_LOG_ID =8686242492 "@Awad_Numbers_Bot"  
+ADMIN_ID = 8388141188 
+CHANNEL_LOG_ID = "@Awad_Numbers_Bot"  
 
 bot = telebot.TeleBot(API_TOKEN)
 HEADERS_5SIM = {
@@ -323,7 +323,7 @@ def handle_queries(call):
             markup = InlineKeyboardMarkup(row_width=2)
             for n in nums:
                 markup.add(InlineKeyboardButton(f"{icon} {n}", callback_data=f"fotp_{n}_{svc}"))
-            markup.add(InlineKeyboardButton("🔙 رجوع لقائمة الدول", callback_data=f"fsvc_{svc}_{icon}"))
+            markup.add(InlineKeyboardButton("🔙 رجوع لقائمة الدول", callback_data="fsvc_{svc}_{icon}"))
             
             bot.edit_message_text(f"✅ **تم اقتناص الأرقام المجانية الحية لـ {svc}:**\n\nاضغط على الرقم المطلوب لمراقبته وقراءة الكود تلقائياً:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
         else:
