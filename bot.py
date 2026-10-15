@@ -64,9 +64,16 @@ CHANNELS = ['@Awad_Numbers_Bot', '@jzbznznx', '@sn6hdbdn19dndw']
 SUBSCRIPTION_LINKS = [
     {"name": "📢 قناة البوت الرسمية", "url": "https://t.me/Awad_Numbers_Bot"},
   {"name": "📢 قناة جديده", "url": "https://t.me/v_o_lti"},
+
     {"name": "📢 قناة عبارات بشكل عام", "url": "https://t.me/jzbznznx"},
+
+
+    {"name": "📢 تعليم اختراق الجولات وتوقيف الوتساب نهائي ~" انضم إلىناء ورح تعرف كل شي "~🥷🏻", "url": "https://t.me/breakthroughawad210"},
+
     {"name": "📢 قناة الدعم الاحتياطية", "url": "https://t.me/sn6hdbdn19dndw"},
-    {"name": "💬 جروب المناقشة والتبادل", "url": "https://t.me/+ohwA2pwywVxhOTVk"}
+
+    {"name": "💬 جروب المناقشة والتبادل",
+ "url": "https://t.me/+ohwA2pwywVxhOTVk"}
 ]
 
 user_last_action = {}
