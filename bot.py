@@ -68,7 +68,7 @@ SUBSCRIPTION_LINKS = [
     {"name": "📢 قناة عبارات بشكل عام", "url": "https://t.me/jzbznznx"},
 
 
-    {"name": "📢 تعليم اختراق الجولات وتوقيف الوتساب نهائي ~" انضم إلىناء ورح تعرف كل شي ", "url": "https://t.me/breakthroughawad210"},
+    {"name": "📢 تعليم اختراق الجولات", "url": "https://t.me/breakthroughawad210"},
 
     {"name": "📢 قناة الدعم الاحتياطية", "url": "https://t.me/sn6hdbdn19dndw"},
 
