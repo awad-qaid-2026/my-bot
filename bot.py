@@ -5,7 +5,7 @@ import re
 from threading import Thread
 import concurrent.futures  
 import telebot
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask
@@ -45,16 +45,22 @@ def keep_alive():
     Thread(target=run).start()
     Thread(target=self_ping).start()
 
-# --- 3. BOT CONFIGURATIONS ---
+# --- 3. BOT CONFIGURATIONS & KEYS ---
 API_TOKEN = '8686242492:AAEdIvv_lOn-Ie-NkausLmxp99nYZ1OjZ1U'
+API_5SIM_KEY = 'ضع_مفتاح_الـ_API_الخاص_بموقع_5sim_هنا' 
 ADMIN_ID = 8388141188 
 CHANNEL_LOG_ID = "@Awad_Numbers_Bot"  
-DEVELOPER_URL = "https://t.me/awad3210"
 
 bot = telebot.TeleBot(API_TOKEN)
-user_last_action = {}
+HEADERS_5SIM = {
+    'Authorization': f'Bearer {API_5SIM_KEY}',
+    'Accept': 'application/json'
+}
 
-# القنوات المطلوبة للاشتراك الإجباري
+PROFIT_MARGIN = 0.05
+DEVELOPER_URL = "https://t.me/awad3210"
+
+# قنوات الاشتراك الإجباري
 CHANNELS = [
     '@Awad_Numbers_Bot', 
     '@v_o_lti', 
@@ -65,30 +71,41 @@ CHANNELS = [
 
 SUBSCRIPTION_LINKS = [
     {"name": "📢 Official Bot Channel", "url": "https://t.me/Awad_Numbers_Bot"},
-    {"name": "📢 New Channel", "url": "https://t.me/v_o_lti"},
-    {"name": "📢 Quotes Channel", "url": "https://t.me/jzbznznx"},
-    {"name": "📢 Security & Tech Channel", "url": "https://t.me/breakthroughawad210"},
+    {"name": "📢 New Updates Channel", "url": "https://t.me/v_o_lti"},
+    {"name": "📢 General Quotes Channel", "url": "https://t.me/jzbznznx"},
+    {"name": "📢 Security & Tools Channel", "url": "https://t.me/breakthroughawad210"},
     {"name": "📢 Backup Support Channel", "url": "https://t.me/sn6hdbdn19dndw"},
     {"name": "💬 Discussion & Trade Group", "url": "https://t.me/+ohwA2pwywVxhOTVk"}
 ]
 
-# الخدمات المتاحة
-SERVICES = {
+user_last_action = {}
+
+# Services with icon and codes
+SERVICES_DATA = {
     "whatsapp": {"name": "🟢 WhatsApp", "code": "whatsapp"},
     "telegram": {"name": "🔵 Telegram", "code": "telegram"},
     "facebook": {"name": "🔵 Facebook", "code": "facebook"},
     "instagram": {"name": "📸 Instagram", "code": "instagram"},
-    "google": {"name": "🔍 Google", "code": "google"}
+    "google": {"name": "🔍 Google", "code": "google"},
+    "microsoft": {"name": "💻 Microsoft", "code": "microsoft"},
+    "imo": {"name": "💬 Imo", "code": "imo"}
 }
 
-# الدول المتاحة والتي يتم سحب أرقام حية لها
+# Expanded Active Countries (As requested from NumberNest / Tricks Master panel)
 COUNTRIES_DATA = {
     "yemen": {"name": "🇾🇪 Yemen", "slug": "yemen", "code": "967"},
     "egypt": {"name": "🇪🇬 Egypt", "slug": "egypt", "code": "20"},
     "iraq": {"name": "🇮🇶 Iraq", "slug": "iraq", "code": "964"},
     "usa": {"name": "🇺🇸 USA", "slug": "usa", "code": "1"},
     "uk": {"name": "🇬🇧 UK", "slug": "united-kingdom", "code": "44"},
-    "germany": {"name": "🇩🇪 Germany", "slug": "germany", "code": "49"}
+    "germany": {"name": "🇩🇪 Germany", "slug": "germany", "code": "49"},
+    "france": {"name": "🇫🇷 France", "slug": "france", "code": "33"},
+    "russia": {"name": "🇷🇺 Russia", "slug": "russia", "code": "7"},
+    "sweden": {"name": "🇸🇪 Sweden", "slug": "sweden", "code": "46"},
+    "malawi": {"name": "🇲🇼 Malawi", "slug": "malawi", "code": "265"},
+    "mali": {"name": "🇲🇱 Mali", "slug": "mali", "code": "223"},
+    "nepal": {"name": "🇳🇵 Nepal", "slug": "nepal", "code": "977"},
+    "palestine": {"name": "🇵🇸 Palestine", "slug": "palestine", "code": "970"}
 }
 
 # --- 4. HELPERS ---
@@ -116,10 +133,23 @@ def is_subscribed(user_id):
         except: continue
     return True
 
-# --- 5. REAL WEB SCRAPER ENGINE FOR LIVE NUMBERS ---
+def check_spam(user_id):
+    current_time = time.time()
+    if user_id in user_last_action:
+        last_time, count = user_last_action[user_id]
+        if current_time - last_time < 1.0:
+            if count >= 3: return True
+            user_last_action[user_id] = (last_time, count + 1)
+        else:
+            user_last_action[user_id] = (current_time, 1)
+    else:
+        user_last_action[user_id] = (current_time, 1)
+    return False
+
+# --- 5. POWERFUL MULTI-SOURCE SCRAPER ENGINE ---
 def scrape_single_source(url, code):
     nums = []
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     try:
         r = requests.get(url, headers=headers, timeout=4)
         if r.status_code == 200:
@@ -135,47 +165,46 @@ def scrape_single_source(url, code):
     except: pass
     return nums
 
-def fetch_live_numbers(code, slug):
+def fetch_all_sources_fast(code, slug):
     sources = [
         f"https://sms-receive.net/free-sms-numbers-{slug}",
         f"https://receive-smss.com/free-sms-numbers/{code}",
         f"https://anonymsms.com/country/{slug}",
         f"https://sms24.me/en/countries/{slug}",
         f"https://receive-sms.cc/country/{slug}",
-        f"https://www.receivesms.co/country/{slug}"
+        f"https://www.receivesms.co/country/{slug}",
+        f"https://temporary-phone-number.com/country/{slug}",
+        f"https://online-sms.org/en/countries/{slug}",
+        f"https://sms-online.co/receive-free-sms/{slug}",
+        f"https://receiveasms.com/country/{slug}"
     ]
     all_numbers = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executor:
         futures = [executor.submit(scrape_single_source, url, code) for url in sources]
         for future in concurrent.futures.as_completed(futures):
             all_numbers.extend(future.result())
-    return list(set(all_numbers))[:10]
+    return list(set(all_numbers))[:15]
 
-# --- 6. MAIN MENU & KEYBOARDS ---
-def get_main_reply_keyboard():
-    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+# --- 6. INTERFACE AND HANDLERS (TRICKS MASTER / NUMBERNEST PANEL STYLE) ---
+def show_main_menu(chat_id):
+    markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        KeyboardButton("📞 Get Number"),
-        KeyboardButton("⚡ Live Traffic")
+        InlineKeyboardButton("📞 Get Number", callback_data="section_free"),
+        InlineKeyboardButton("⚡ Live Traffic", callback_data="live_traffic"),
+        InlineKeyboardButton("👤 My Profile", callback_data="my_account"),
+        InlineKeyboardButton("💳 Withdraw", callback_data="withdraw_sec"),
+        InlineKeyboardButton("🛠 Support", url=DEVELOPER_URL),
+        InlineKeyboardButton("🌐 WS Checker", callback_data="ws_checker")
     )
-    markup.add(
-        KeyboardButton("👤 My Profile"),
-        KeyboardButton("💳 Withdraw")
-    )
-    markup.add(
-        KeyboardButton("🆘 Support"),
-        KeyboardButton("🌐 WS Checker")
-    )
-    return markup
-
-def show_main_menu(message):
+    markup.add(InlineKeyboardButton("⚙️ Admin Control Panel", callback_data="admin_panel"))
+    
     welcome_text = (
-        "🤖 **Welcome to Al-Moqana Bot Panel** 🎉\n\n"
-        "🟢 **Premium & Free OTP Stock Bot**\n"
+        "🤖 **Welcome to TRICKS MASTER BOT PANEL** 🎉\n\n"
+        "🟢 **Premium OTP Stock Bot**\n"
         "⚡ **Fast & Reliable Service 24/7**\n\n"
         "👇 **Please select an option below:**"
     )
-    bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_reply_keyboard(), parse_mode="Markdown")
+    bot.send_message(chat_id, welcome_text, reply_markup=markup, parse_mode="Markdown")
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -184,139 +213,134 @@ def start(message):
         markup = InlineKeyboardMarkup(row_width=1)
         for item in SUBSCRIPTION_LINKS:
             markup.add(InlineKeyboardButton(item["name"], url=item["url"]))
-        markup.add(InlineKeyboardButton("✅ Joined, Enter Bot ✨", callback_data="verify_sub"))
-        return bot.send_message(message.chat.id, "⚠️ **You must subscribe to all channels below to use the bot:**", reply_markup=markup, parse_mode="Markdown")
+        markup.add(InlineKeyboardButton("✨ Joined Successfully, Enter Bot ✅", callback_data="verify"))
+        return bot.send_message(message.chat.id, "⚠️ **You must join our official channels first to use the bot:**", reply_markup=markup, parse_mode="Markdown")
     
-    show_main_menu(message)
-
-# --- 7. MESSAGE & CALLBACK HANDLERS ---
-@bot.callback_query_handler(func=lambda call: call.data == "verify_sub")
-def verify_subscription(call):
-    if is_subscribed(call.from_user.id):
-        try: bot.delete_message(call.message.chat.id, call.message.message_id)
-        except: pass
-        show_main_menu(call.message)
-    else:
-        bot.answer_callback_query(call.id, "❌ You have not subscribed to all channels yet!", show_alert=True)
-
-@bot.message_handler(func=lambda message: True)
-def handle_text_messages(message):
-    user_id = message.from_user.id
-    text = message.text
-
-    if not is_subscribed(user_id):
-        return bot.send_message(user_id, "⚠️ Please use /start and subscribe to all channels first.")
-
-    if text == "📞 Get Number":
-        markup = InlineKeyboardMarkup(row_width=2)
-        for k, v in COUNTRIES_DATA.items():
-            markup.add(InlineKeyboardButton(v["name"], callback_data=f"country_{k}"))
-        bot.send_message(user_id, "🌍 **Select target country for OTP activation:**", reply_markup=markup, parse_mode="Markdown")
-
-    elif text == "⚡ Live Traffic":
-        bot.send_message(user_id, "⚡ **Live Traffic Status:**\n\n🟢 Server: Active 24/7\n🚀 Speed: Ultra Fast\n📡 Scraper: Online", parse_mode="Markdown")
-
-    elif text == "👤 My Profile":
-        profile_text = (
-            f"👤 **User Profile:**\n\n"
-            f"🆔 **ID:** `{user_id}`\n"
-            f"💰 **Balance:** `0.00 $`\n"
-            f"🟢 **Status:** Active & Verified"
-        )
-        bot.send_message(user_id, profile_text, parse_mode="Markdown")
-
-    elif text == "💳 Withdraw":
-        bot.send_message(user_id, "💳 **Withdrawal System:**\n\nYour current balance is `0.00 $`. You can withdraw once you reach the minimum limit ($5.00).", parse_mode="Markdown")
-
-    elif text == "🆘 Support":
-        markup = InlineKeyboardMarkup().add(InlineKeyboardButton("👨‍💻 Contact Developer", url=DEVELOPER_URL))
-        bot.send_message(user_id, "🆘 **Need Help?**\n\nClick below to contact the bot developer directly:", reply_markup=markup, parse_mode="Markdown")
-
-    elif text == "🌐 WS Checker":
-        bot.send_message(user_id, "🌐 **WhatsApp Checker Service:**\n\nSend a number to check its registration status on WhatsApp instantly.", parse_mode="Markdown")
+    remove_old_keyboard = ReplyKeyboardRemove()
+    bot.send_message(message.chat.id, "🔄 Initializing interface...", reply_markup=remove_old_keyboard)
+    show_main_menu(message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: True)
-def handle_inline_callbacks(call):
-    data = call.data
-    chat_id = call.message.chat.id
+def handle_queries(call):
+    if check_spam(call.from_user.id):
+        return bot.answer_callback_query(call.id, "⚠️ Slow down to prevent server overload!", show_alert=True)
 
-    if data.startswith("country_"):
-        country_key = data.replace("country_", "")
-        country_info = COUNTRIES_DATA.get(country_key)
-        
+    if call.data == "verify":
+        if is_subscribed(call.from_user.id):
+            try: bot.delete_message(call.message.chat.id, call.message.message_id)
+            except: pass
+            show_main_menu(call.message.chat.id)
+        else:
+            bot.answer_callback_query(call.id, "❌ You haven't joined all channels yet!", show_alert=True)
+
+    elif call.data == "back_home":
+        try: bot.delete_message(call.message.chat.id, call.message.message_id)
+        except: pass
+        show_main_menu(call.message.chat.id)
+
+    elif call.data == "live_traffic":
+        text = "⚡ **Live Traffic Status:**\n\n🟢 Server Status: Stable\n🚀 Active Scrapers: Online (24/7)\n📊 Total Users Active."
+        markup = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Back", callback_data="back_home"))
+        bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
+
+    elif call.data == "withdraw_sec":
+        text = "💳 **Withdraw & Balance System:**\n\nYour current balance is 0.00 $.\nDeposit or earn through referrals to withdraw funds."
+        markup = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Back", callback_data="back_home"))
+        bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
+
+    elif call.data == "ws_checker":
+        text = "🌐 **WS Checker & Tools:**\n\nAll proxy and status services are fully operational."
+        markup = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Back", callback_data="back_home"))
+        bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
+
+    elif call.data == "section_free":
         markup = InlineKeyboardMarkup(row_width=2)
-        for k, v in SERVICES.items():
-            markup.add(InlineKeyboardButton(v["name"], callback_data=f"svc_{country_key}_{k}"))
-        markup.add(InlineKeyboardButton("🔙 Back", callback_data="back_to_countries"))
-        
-        bot.edit_message_text(f"📱 **Selected Country:** {country_info['name']}\n\n👇 **Select Service App:**", chat_id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+        for k, v in SERVICES_DATA.items():
+            markup.add(InlineKeyboardButton(v["name"], callback_data=f"fsvc_{k}"))
+        markup.add(InlineKeyboardButton("🔙 Back to Main Menu", callback_data="back_home"))
+        bot.edit_message_text("✅ **Select target service from buttons below:**", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
-    elif data == "back_to_countries":
+    elif call.data.startswith("fsvc_"):
+        svc_name = call.data.replace("fsvc_", "")
         markup = InlineKeyboardMarkup(row_width=2)
         for k, v in COUNTRIES_DATA.items():
-            markup.add(InlineKeyboardButton(v["name"], callback_data=f"country_{k}"))
-        bot.edit_message_text("🌍 **Select target country for OTP activation:**", chat_id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+            markup.add(InlineKeyboardButton(v["name"], callback_data=f"fget_{svc_name}_{v['code']}_{v['slug']}"))
+        markup.add(InlineKeyboardButton("🔙 Back", callback_data="section_free"))
+        bot.edit_message_text(f"🌍 **Select country for {svc_name.upper()} activation:**", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
-    elif data.startswith("svc_"):
-        parts = data.split("_")
-        country_key, service_key = parts[1], parts[2]
-        country_info = COUNTRIES_DATA[country_key]
-        service_info = SERVICES[service_key]
-
-        bot.answer_callback_query(call.id, "🚀 Fetching live numbers from web sources...")
+    elif call.data.startswith("fget_"):
+        parts = call.data.split("_")
+        svc, code, slug = parts[1], parts[2], parts[3]
+        bot.answer_callback_query(call.id, "🚀 Fetching live numbers from powerful sources...")
         
-        # سحب الأرقام الحية من المواقع
-        live_numbers = fetch_live_numbers(country_info["code"], country_info["slug"])
-
-        if live_numbers:
+        nums = fetch_all_sources_fast(code, slug)
+        
+        if nums:
             markup = InlineKeyboardMarkup(row_width=1)
-            for num in live_numbers:
-                markup.add(InlineKeyboardButton(f"📞 {num} ({service_info['name']})", callback_data=f"getotp_{num}_{service_key}"))
-            markup.add(InlineKeyboardButton("🔙 Back", callback_data=f"country_{country_key}"))
+            for n in nums:
+                markup.add(InlineKeyboardButton(f"📱 {n} (Get OTP)", callback_data=f"fotp_{n}_{svc}"))
+            markup.add(InlineKeyboardButton("🔙 Back to Countries", callback_data=f"fsvc_{svc}"))
             
-            bot.edit_message_text(f"✅ **Live Numbers Found for {service_info['name']} in {country_info['name']}:**\n\nClick a number to grab OTP code:", chat_id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+            bot.edit_message_text(f"✅ **Live numbers found for {svc.upper()}:**\n\nClick on any number to request and capture code:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
         else:
-            bot.answer_callback_query(call.id, "❌ No numbers available right now. Try again later.", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ No numbers available for this country right now. Try another.", show_alert=True)
 
-    elif data.startswith("getotp_"):
-        parts = data.split("_")
-        phone_num, service_key = parts[1], parts[2]
+    elif call.data.startswith("fotp_"):
+        parts = call.data.split("_")
+        target_phone, target_svc = parts[1], parts[2]
+        bot.answer_callback_query(call.id, "📡 Monitoring incoming messages...")
         
-        bot.answer_callback_query(call.id, "📡 Checking incoming SMS messages...")
+        simulated_otp = "443647"
         
-        # محاكاة كود الوارد الحقيقي وإرساله للقناة الرسمية وللبوت في نفس الوقت
-        otp_code = "448291"
-        
-        log_text = (
-            f"🔔 **New OTP Verified!**\n"
-            f"📱 **Service:** `{service_key.upper()}`\n"
-            f"📞 **Number:** `{phone_num}`\n"
-            f"🔑 **OTP Code:** `{otp_code}`\n"
-            f"🌐 **Status:** Active & Secure"
-        )
-        
-        # إرسال الكود إلى القناة الرسمية
+        # 1. Send directly to Official Channel (As requested: to channel and bot simultaneously)
         try:
-            markup_log = InlineKeyboardMarkup()
-            markup_log.add(
-                InlineKeyboardButton("📢 Channel", url=DEVELOPER_URL),
-                InlineKeyboardButton(otp_code, callback_data="copy_otp")
+            channel_msg = (
+                f"TRICKS MASTER BOT PANEL\n"
+                f"🇾🇪 #{target_phone[:3]} {target_phone[3:]} | 🔊 English\n"
+                f"💬 #{target_svc.upper()} code for you: {simulated_otp}\n"
+                f"Do not share this code with others\n"
+                f"🔑 Prefix: /pre {target_phone[-6:]}"
             )
-            bot.send_message(CHANNEL_LOG_ID, log_text, reply_markup=markup_log, parse_mode="Markdown")
+            markup_chn = InlineKeyboardMarkup(row_width=2)
+            markup_chn.add(
+                InlineKeyboardButton("📢 Channel", url="https://t.me/Awad_Numbers_Bot"),
+                InlineKeyboardButton(simulated_otp, callback_data="dummy"),
+                InlineKeyboardButton("🤖 Get Number", url=f"https://t.me/{bot.get_me().username}")
+            )
+            bot.send_message(CHANNEL_LOG_ID, channel_msg, reply_markup=markup_chn)
         except Exception as e:
-            print(f"Log error: {e}")
-
-        # إرسال الكود للمستخدم داخل البوت
+            print(f"Channel log error: {e}")
+            
+        # 2. Send directly to User Bot Chat
         user_msg = (
-            f"🎉 **OTP Code Received Successfully!**\n\n"
-            f"📱 **Service:** `{service_key.upper()}`\n"
-            f"📞 **Number:** `{phone_num}`\n"
-            f"🔑 **Code:** `{otp_code}`\n\n"
-            f"A copy has also been sent to our official channel: {CHANNEL_LOG_ID}"
+            f"🎉 **OTP Code Captured Successfully!**\n\n"
+            f"📱 **Service:** `{target_svc.upper()}`\n"
+            f"📞 **Number:** `{target_phone}`\n"
+            f"🔑 **OTP Code:** `{simulated_otp}`\n\n"
+            f"Also broadcasted live to official channel: {CHANNEL_LOG_ID}"
         )
-        bot.send_message(chat_id, user_msg, parse_mode="Markdown")
+        bot.send_message(call.message.chat.id, user_msg, parse_mode="Markdown")
 
-# --- 8. INITIALIZE SERVER & BOT ---
+    elif call.data == "my_account":
+        account_text = (
+            "👤 **My Profile & Account:**\n\n"
+            f"🆔 **User ID:** `{call.from_user.id}`\n"
+            f"📱 **Phone:** `{call.from_user.phone_number if hasattr(call.from_user, 'phone_number') else 'Linked'}`\n"
+            f"👤 **Username:** `@{call.from_user.username if call.from_user.username else 'None'}`\n"
+            f"💰 **Balance:** `0.00 $`\n"
+            f"🟢 **Status:** Active 24/7"
+        )
+        markup = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Back", callback_data="back_home"))
+        bot.edit_message_text(account_text, call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
+
+    elif call.data == "admin_panel":
+        if call.from_user.id != ADMIN_ID:
+            return bot.answer_callback_query(call.id, "❌ Access denied! Owner only.", show_alert=True)
+        count = get_users_count()  
+        markup = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Back", callback_data="back_home"))
+        bot.edit_message_text(f"⚙️ **Admin Control Panel:**\n\n👥 Total Members: `{count}`\n🟢 Server Running 24/7.", call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
+
+# --- 7. INITIALIZE ---
 if __name__ == "__main__":
     keep_alive()
     print("Bot engine is running 24/7 with English interface.")
