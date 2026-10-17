@@ -63,7 +63,7 @@ DEVELOPER_URL = "https://t.me/awad3210"
 # حالة الصيانة (False = البوت يعمل طبيعي، True = البوت مغلق للصيانة)
 MAINTENANCE_MODE = False
 
-# قنوات الاشتراك الإجباري
+# قنوات الاشتراك الإجباري الآمنة الخاصة بك فقط
 CHANNELS = [
     '@Awad_Numbers_Bot', 
     '@v_o_lti', 
@@ -233,7 +233,6 @@ def send_welcome_panel(chat_id):
 def start(message):
     user_id = message.from_user.id
     
-    # حماية الحظر والصيانة
     if user_id != ADMIN_ID:
         if is_banned(user_id):
             return bot.send_message(message.chat.id, "❌ **عذراً، أنت محظور من استخدام هذا البوت.**", parse_mode="Markdown")
@@ -270,7 +269,6 @@ def verify_subscription(call):
 def handle_text_buttons(message):
     user_id = message.from_user.id
     
-    # حماية الحظر والصيانة لأي رسالة أو زر
     if user_id != ADMIN_ID:
         if is_banned(user_id):
             return bot.send_message(message.chat.id, "❌ **عذراً، أنت محظور من استخدام هذا البوت.**", parse_mode="Markdown")
