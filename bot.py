@@ -60,6 +60,9 @@ HEADERS_5SIM = {
 PROFIT_MARGIN = 0.05
 DEVELOPER_URL = "https://t.me/awad3210"
 
+# حالة الصيانة (False = البوت يعمل طبيعي، True = البوت مغلق للصيانة)
+MAINTENANCE_MODE = False
+
 # قنوات الاشتراك الإجباري
 CHANNELS = [
     '@Awad_Numbers_Bot', 
@@ -95,7 +98,7 @@ COUNTRIES_DATA = {
     "uk": {"name": "🇬🇧 UK / بريطانيا", "slug": "united-kingdom", "code": "44", "flag": "🇬🇧"}
 }
 
-# --- 4. HELPERS ---
+# --- 4. HELPERS & SECURITY ---
 def save_user(user_id):
     if not os.path.exists("users.txt"):
         with open("users.txt", "w") as f: pass
@@ -111,6 +114,13 @@ def get_users_count():
     with open("users.txt", "r") as f:
         return len([line for line in f.read().splitlines() if line.strip()])
 
+def is_banned(user_id):
+    if not os.path.exists("banned.txt"):
+        return False
+    with open("banned.txt", "r") as f:
+        banned_users = f.read().splitlines()
+    return str(user_id) in banned_users
+
 def is_subscribed(user_id):
     if user_id == ADMIN_ID: return True
     for ch in CHANNELS:
@@ -120,7 +130,48 @@ def is_subscribed(user_id):
         except: continue
     return True
 
-# --- 5. REAL SCRAPER ENGINE (ربط المواقع لجلب الأرقام الحية) ---
+# --- 5. SECURITY & ADMIN COMMANDS ---
+@bot.message_handler(commands=['ban'])
+def ban_user(message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    args = message.text.split()
+    if len(args) < 2:
+        return bot.reply_to(message, "⚠️ استخدم الأمر هكذا:\n`/ban ID`", parse_mode="Markdown")
+    
+    target_id = args[1]
+    with open("banned.txt", "a") as f:
+        f.write(f"{target_id}\n")
+    bot.reply_to(message, f"🚫 تم حظر المستخدم بنجاح: `{target_id}`", parse_mode="Markdown")
+
+@bot.message_handler(commands=['unban'])
+def unban_user(message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    args = message.text.split()
+    if len(args) < 2:
+        return bot.reply_to(message, "⚠️ استخدم الأمر هكذا:\n`/unban ID`", parse_mode="Markdown")
+    
+    target_id = args[1]
+    if os.path.exists("banned.txt"):
+        with open("banned.txt", "r") as f:
+            lines = f.readlines()
+        with open("banned.txt", "w") as f:
+            for line in lines:
+                if line.strip() != target_id:
+                    f.write(line)
+    bot.reply_to(message, f"✅ تم إلغاء حظر المستخدم: `{target_id}`", parse_mode="Markdown")
+
+@bot.message_handler(commands=['maintenance'])
+def toggle_maintenance(message):
+    global MAINTENANCE_MODE
+    if message.from_user.id != ADMIN_ID:
+        return
+    MAINTENANCE_MODE = not MAINTENANCE_MODE
+    status = "مفعلة 🔴 (البوت مغلق للصيانة)" if MAINTENANCE_MODE else "معطلة 🟢 (البوت يعمل طبيعي)"
+    bot.reply_to(message, f"🛠 **حالة وضع الصيانة:**\n{status}", parse_mode="Markdown")
+
+# --- 6. REAL SCRAPER ENGINE ---
 def scrape_single_source(url, code):
     nums = []
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
@@ -140,7 +191,6 @@ def scrape_single_source(url, code):
     return nums
 
 def fetch_live_numbers_from_web(code, slug):
-    # المواقع الحقيقية المربوطة لسحب الأرقام وتحديثها تلقائياً
     sources = [
         f"https://sms-receive.net/free-sms-numbers-{slug}",
         f"https://receive-smss.com/free-sms-numbers/{code}",
@@ -157,7 +207,7 @@ def fetch_live_numbers_from_web(code, slug):
             all_numbers.extend(future.result())
     return list(set(all_numbers))[:10]
 
-# --- 6. MAIN MENUS & KEYBOARDS ---
+# --- 7. MAIN MENUS & KEYBOARDS ---
 def main_reply_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
@@ -181,8 +231,17 @@ def send_welcome_panel(chat_id):
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    save_user(message.from_user.id)
-    if not is_subscribed(message.from_user.id):
+    user_id = message.from_user.id
+    
+    # حماية الحظر والصيانة
+    if user_id != ADMIN_ID:
+        if is_banned(user_id):
+            return bot.send_message(message.chat.id, "❌ **عذراً، أنت محظور من استخدام هذا البوت.**", parse_mode="Markdown")
+        if MAINTENANCE_MODE:
+            return bot.send_message(message.chat.id, "🛠 **البوت في وضع الصيانة حالياً. يرجى المحاولة لاحقاً.**", parse_mode="Markdown")
+
+    save_user(user_id)
+    if not is_subscribed(user_id):
         markup = InlineKeyboardMarkup(row_width=1)
         for item in SUBSCRIPTION_LINKS:
             markup.add(InlineKeyboardButton(item["name"], url=item["url"]))
@@ -193,6 +252,12 @@ def start(message):
 
 @bot.callback_query_handler(func=lambda call: call.data == "verify_sub")
 def verify_subscription(call):
+    if call.from_user.id != ADMIN_ID:
+        if is_banned(call.from_user.id):
+            return bot.answer_callback_query(call.id, "❌ أنت محظور من استخدام البوت!", show_alert=True)
+        if MAINTENANCE_MODE:
+            return bot.answer_callback_query(call.id, "🛠 البوت في وضع الصيانة حالياً!", show_alert=True)
+
     if is_subscribed(call.from_user.id):
         try: bot.delete_message(call.message.chat.id, call.message.message_id)
         except: pass
@@ -200,10 +265,18 @@ def verify_subscription(call):
     else:
         bot.answer_callback_query(call.id, "❌ لم تقم بالاشتراك في جميع القنوات بعد!", show_alert=True)
 
-# --- 7. HANDLE REPLY KEYBOARD BUTTONS ---
+# --- 8. HANDLE REPLY KEYBOARD BUTTONS ---
 @bot.message_handler(func=lambda message: True)
 def handle_text_buttons(message):
     user_id = message.from_user.id
+    
+    # حماية الحظر والصيانة لأي رسالة أو زر
+    if user_id != ADMIN_ID:
+        if is_banned(user_id):
+            return bot.send_message(message.chat.id, "❌ **عذراً، أنت محظور من استخدام هذا البوت.**", parse_mode="Markdown")
+        if MAINTENANCE_MODE:
+            return bot.send_message(message.chat.id, "🛠 **البوت في وضع الصيانة حالياً. يرجى المحاولة لاحقاً.**", parse_mode="Markdown")
+
     txt = message.text
 
     if txt == "📞 Get Number":
@@ -240,15 +313,20 @@ def handle_text_buttons(message):
     elif txt == "🛡️ WS CHECKER":
         bot.send_message(message.chat.id, "🛡️ **أداة فحص الحسابات والأرقام (WS CHECKER):**\n\nالأداة جاهزة ومربوطة بفحص الأرقام الفورية.", parse_mode="Markdown")
 
-# --- 8. CALLBACK QUERIES FOR COUNTRIES & NUMBERS ---
+# --- 9. CALLBACK QUERIES FOR COUNTRIES & NUMBERS ---
 @bot.callback_query_handler(func=lambda call: call.data.startswith("get_country_"))
 def handle_country_selection(call):
+    if call.from_user.id != ADMIN_ID:
+        if is_banned(call.from_user.id):
+            return bot.answer_callback_query(call.id, "❌ أنت محظور من استخدام البوت!", show_alert=True)
+        if MAINTENANCE_MODE:
+            return bot.answer_callback_query(call.id, "🛠 البوت في وضع الصيانة حالياً!", show_alert=True)
+
     country_key = call.data.replace("get_country_", "")
     country_info = COUNTRIES_DATA.get(country_key)
     
     bot.answer_callback_query(call.id, f"🚀 جاري جلب الأرقام الحية لـ {country_info['name']} من المواقع...")
     
-    # سحب أرقام حية من الإنترنت بناءً على كود الدولة
     live_nums = fetch_live_numbers_from_web(country_info['code'], country_info['slug'])
     
     if live_nums:
@@ -261,10 +339,15 @@ def handle_country_selection(call):
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("otp_check_"))
 def handle_otp_checking(call):
+    if call.from_user.id != ADMIN_ID:
+        if is_banned(call.from_user.id):
+            return bot.answer_callback_query(call.id, "❌ أنت محظور من استخدام البوت!", show_alert=True)
+        if MAINTENANCE_MODE:
+            return bot.answer_callback_query(call.id, "🛠 البوت في وضع الصيانة حالياً!", show_alert=True)
+
     phone_num = call.data.replace("otp_check_", "")
     bot.answer_callback_query(call.id, "📡 يتم الآن رصد الرسائل الواردة للرقم...")
     
-    # محاكاة وصول كود حقيقي وإرساله كإشعار تماماً مثل الصورة المطلوبة
     sample_otp = "443647"
     log_text = (
         f"📌 **TRICKS MASTAR BOT PANEL**\n"
@@ -275,13 +358,12 @@ def handle_otp_checking(call):
         f"📌 **Prefix:** `/pre 967730`"
     )
     
-    # إرسال الكود للمستخدم وللقناة
     bot.send_message(call.message.chat.id, log_text, parse_mode="Markdown")
     try:
         bot.send_message(CHANNEL_LOG_ID, log_text, parse_mode="Markdown")
     except: pass
 
-# --- 9. INITIALIZE SERVER & BOT ---
+# --- 10. INITIALIZE SERVER & BOT ---
 if __name__ == "__main__":
     keep_alive()
     print("Master Panel Bot is running 24/7 successfully.")
