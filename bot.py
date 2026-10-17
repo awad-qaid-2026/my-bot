@@ -45,7 +45,7 @@ def keep_alive():
     Thread(target=self_ping, daemon=True).start()
 
 # --- 3. BOT CONFIGURATIONS & SECURE TOKEN ---
-API_TOKEN = '8686242492:AAH5vvtu20gSb01_wa63vv7xYvE4NktgYf0'
+API_TOKEN = '8686242492:AAH5vvu20gSbO1_wa63vv7xYvEG4NktgYf0'
 ADMIN_ID = 8388141188 
 CHANNEL_LOG_ID = "@Awad_Numbers_Bot"  
 DEVELOPER_URL = "https://t.me/awad3210"
@@ -172,7 +172,6 @@ def get_lightning_number(code, slug):
         f"https://receive-sms.cc/country/{slug}",
         f"https://online-sms.org/en/countries/{slug}"
     ]
-    # محاولة السحب السريع من الويب
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             futures = [executor.submit(scrape_source, url, code) for url in sources]
@@ -183,7 +182,6 @@ def get_lightning_number(code, slug):
     except Exception:
         pass
     
-    # النظام الاحتياطي الفوري في حال تعثر السحب من الويب
     if slug in BACKUP_POOLS and BACKUP_POOLS[slug]:
         return random.choice(BACKUP_POOLS[slug])
     
@@ -296,7 +294,6 @@ def handle_country_or_service(call):
     
     country_info = COUNTRIES_LIST.get(country_key, COUNTRIES_LIST["malawi"])
     
-    # جلب الرقم بالسرعة القصوى مع النظام الاحتياطي
     num_clean = get_lightning_number(country_info['code'], country_info['slug'])
     
     msg_text = (
