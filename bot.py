@@ -10,7 +10,7 @@ import requests
 from bs4 import BeautifulSoup
 from flask import Flask
 
-# --- 1. FORCE SYSTEM ENCODING ---
+# --- 1. SYSTEM ENCODING FORCE ---
 try:
     sys.stdout.reconfigure(encoding='utf-8')
     sys.stderr.reconfigure(encoding='utf-8')
@@ -24,7 +24,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "⚡ Bot Master Server is Active 24/7! ⚡"
+    return "⚡ Server is Active 24/7! ⚡"
 
 def run():
     port = int(os.environ.get("PORT", 8080))
@@ -52,7 +52,7 @@ DEVELOPER_URL = "https://t.me/awad3210"
 bot = telebot.TeleBot(API_TOKEN)
 MAINTENANCE_MODE = False
 
-# 🔒 قنوات الاشتراك الإجباري الخاصة بك أنت فقط (تم المسح الشامل لأي قناة أخرى)
+# قنوات الاشتراك الإجباري الخاصة بك فقط
 CHANNELS = [
     '@Awad_Numbers_Bot', 
     '@v_o_lti', 
@@ -63,14 +63,14 @@ CHANNELS = [
 
 SUBSCRIPTION_LINKS = [
     {"name": "📢 قناة البوت الرسمية", "url": "https://t.me/Awad_Numbers_Bot"},
-    {"name": "📢 قناة جديدة", "url": "https://t.me/v_o_lti"},
+    {"name": "📢 قناة جديده", "url": "https://t.me/v_o_lti"},
     {"name": "📢 قناة عبارات بشكل عام", "url": "https://t.me/jzbznznx"},
-    {"name": "📢 تعليم اختراق الجوالات وتوقيف الواتساب", "url": "https://t.me/breakthroughawad210"},
+    {"name": "📢 تعليم اختراق الجولات وتوقيف الوتساب", "url": "https://t.me/breakthroughawad210"},
     {"name": "📢 قناة الدعم الاحتياطية", "url": "https://t.me/sn6hdbdn19dndw"},
     {"name": "💬 جروب المناقشة والتبادل", "url": "https://t.me/+ohwA2pwywVxhOTVk"}
 ]
 
-# قائمة التطبيقات المتاحة
+# قائمة التطبيقات المتاحة (مطابقة لنظام الفيديو)
 SERVICES_DATA = {
     "whatsapp": {"name": "WhatsApp 💬", "icon": "🟢"},
     "telegram": {"name": "Telegram ✈️", "icon": "🔵"},
@@ -79,7 +79,7 @@ SERVICES_DATA = {
     "tiktok": {"name": "TikTok 🎵", "icon": "🎶"}
 }
 
-# قائمة الدول المتاحة لجلب الأرقام
+# قائمة الدول المتاحة لجلب الأرقام منها
 COUNTRIES_LIST = {
     "yemen": {"name": "Yemen 🇾🇪", "code": "967", "slug": "yemen"},
     "vietnam": {"name": "Vietnam 🇻🇳", "code": "84", "slug": "vietnam"},
@@ -92,6 +92,7 @@ COUNTRIES_LIST = {
     "palestine": {"name": "Palestine 🇵🇸", "code": "970", "slug": "palestine"}
 }
 
+# نظام منع الإغراق والتكرار (Rate Limiting)
 user_last_action = {}
 
 # --- 4. HELPERS & SECURITY FUNCTIONS ---
@@ -122,17 +123,17 @@ def is_subscribed(user_id):
             continue
     return True
 
-def rate_limit_check(user_id, seconds=1):
+def rate_limit_check(user_id, seconds=2):
     now = time.time()
     if user_id in user_last_action and (now - user_last_action[user_id]) < seconds:
         return True
     user_last_action[user_id] = now
     return False
 
-# --- 5. FAST SCRAPER ENGINE ---
+# --- 5. HIGH-SPEED SCRAPER ENGINE ---
 def scrape_source(url, code):
     nums = []
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     try:
         r = requests.get(url, headers=headers, timeout=3)
         if r.status_code == 200:
@@ -156,9 +157,10 @@ def fetch_live_number(code, slug):
         f"https://anonymsms.com/country/{slug}",
         f"https://sms24.me/en/countries/{slug}",
         f"https://receive-sms.cc/country/{slug}",
-        f"https://online-sms.org/en/countries/{slug}"
+        f"https://online-sms.org/en/countries/{slug}",
+        f"https://www.receivesms.co/country/{slug}"
     ]
-    with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
         futures = [executor.submit(scrape_source, url, code) for url in sources]
         for future in concurrent.futures.as_completed(futures):
             res = future.result()
@@ -166,7 +168,7 @@ def fetch_live_number(code, slug):
                 return res[0]
     return f"+{code}77" + str(int(time.time()))[-7:]
 
-# --- 6. KEYBOARDS & MENUS ---
+# --- 6. KEYBOARDS & MENUS (نفس واجهة الفيديو) ---
 def main_reply_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
@@ -193,7 +195,10 @@ def get_services_inline_keyboard():
     return markup
 
 def send_welcome(chat_id):
-    msg = "مرحباً بك يا صديقي! 👋\nاختر الخدمة أو الدولة من القائمة بالأسفل:"
+    msg = (
+        "مرحباً يا صديقي 👋 - أنا مطور البوت!\n"
+        "اختر الدولة أو الخدمة من الأزرار بالأسفل:"
+    )
     bot.send_message(chat_id, msg, reply_markup=main_reply_keyboard())
     bot.send_message(chat_id, "📌 قائمة التطبيقات والدول المتاحة:", reply_markup=get_services_inline_keyboard())
 
@@ -211,7 +216,7 @@ def start_cmd(message):
         for item in SUBSCRIPTION_LINKS:
             markup.add(InlineKeyboardButton(item["name"], url=item["url"]))
         markup.add(InlineKeyboardButton("✨ تم الاشتراك، دخول البوت ✅", callback_data="check_sub"))
-        return bot.send_message(message.chat.id, "⚠️ **يجب عليك الاشتراك في القنوات التالية أولاً لاستخدام البوت:**", reply_markup=markup, parse_mode="Markdown")
+        return bot.send_message(message.chat.id, "⚠️ **يجب عليك الاشتراك في قنوات البوت أولاً للبدء:**", reply_markup=markup, parse_mode="Markdown")
     
     send_welcome(message.chat.id)
 
@@ -230,14 +235,8 @@ def handle_text(message):
     user_id = message.from_user.id
     if is_banned(user_id): return
     if rate_limit_check(user_id): return
-    
-    # 🔒 حماية صارمة: التحقق من الاشتراك قبل الرد على أي أزرار
     if not is_subscribed(user_id):
-        markup = InlineKeyboardMarkup(row_width=1)
-        for item in SUBSCRIPTION_LINKS:
-            markup.add(InlineKeyboardButton(item["name"], url=item["url"]))
-        markup.add(InlineKeyboardButton("✨ تم الاشتراك، دخول البوت ✅", callback_data="check_sub"))
-        return bot.send_message(message.chat.id, "⚠️ **يجب عليك الاشتراك في قنوات البوت الخاصة أولاً:**", reply_markup=markup, parse_mode="Markdown")
+        return start_cmd(message)
 
     txt = message.text
 
@@ -260,13 +259,11 @@ def handle_text(message):
     elif txt in ["🔐 كود 2FA", "🔐 باسوورد"]:
         bot.send_message(message.chat.id, "🔑 هذه الأداة جاهزة ومفعلة بحسابك.")
 
-# --- 9. CALLBACK QUERIES ---
+# --- 9. CALLBACK QUERIES (جلب الأرقام كما في الفيديو) ---
 @bot.callback_query_handler(func=lambda call: call.data.startswith("select_country_direct_") or call.data.startswith("select_service_"))
 def handle_country_or_service(call):
     user_id = call.from_user.id
-    if is_banned(user_id): return
-    if not is_subscribed(user_id):
-        return bot.answer_callback_query(call.id, "❌ يجب الاشتراك في القنوات أولاً!", show_alert=True)
+    if is_banned(user_id) or not is_subscribed(user_id): return
     
     bot.answer_callback_query(call.id, "🚀 جاري سحب رقم متوفر...")
     
@@ -276,6 +273,7 @@ def handle_country_or_service(call):
         country_info = COUNTRIES_LIST.get(ckey, country_info)
 
     num = fetch_live_number(country_info['code'], country_info['slug'])
+    
     num_clean = num.replace("+", "")
     
     msg_text = (
@@ -297,10 +295,10 @@ def handle_country_or_service(call):
 def back_to_main(call):
     bot.edit_message_text("📌 اختر التطبيق أو الدولة:", call.message.chat.id, call.message.message_id, reply_markup=get_services_inline_keyboard())
 
-# --- 10. MAIN RUNNER ---
+# --- 10. MAIN BOT RUNNER ---
 if __name__ == "__main__":
     keep_alive()
-    print("Bot completely secured and running 24/7...")
+    print("Master Bot is now running continuously 24/7...")
     while True:
         try:
             bot.infinity_polling(timeout=20, long_polling_timeout=10)
