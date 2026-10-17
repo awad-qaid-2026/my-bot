@@ -63,7 +63,7 @@ DEVELOPER_URL = "https://t.me/awad3210"
 # حالة الصيانة (False = البوت يعمل طبيعي، True = البوت مغلق للصيانة)
 MAINTENANCE_MODE = False
 
-# قنوات الاشتراك الإجباري الآمنة الخاصة بك فقط
+# قنوات الاشتراك الإجباري الخاصة بك فقط
 CHANNELS = [
     '@Awad_Numbers_Bot', 
     '@v_o_lti', 
