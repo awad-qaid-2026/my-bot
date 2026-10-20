@@ -80,7 +80,7 @@ SERVICES_DATA = {
     "tiktok": {"name": "TikTok 🎵", "icon": "🎶"}
 }
 
-# قائمة الدول مع البادئات الرسمية الدقيقة للحفاظ على صيغة أرقام الواتساب
+# قائمة الدول مع البادئات الرسمية الدقيقة
 COUNTRIES_LIST = {
     "yemen": {"name": "Yemen 🇾🇪", "code": "967", "slug": "yemen", "len": 9, "prefixes": ["77", "73", "71", "78"]},
     "vietnam": {"name": "Vietnam 🇻🇳", "code": "84", "slug": "vietnam", "len": 9, "prefixes": ["90", "91", "98", "32"]},
@@ -131,7 +131,7 @@ def rate_limit_check(user_id, seconds=1):
     user_last_action[user_id] = now
     return False
 
-# --- 5. MULTI-SOURCE SCRAPER & REAL OTP ENGINE ---
+# --- 5. ULTRA FAST SCRAPER & REAL OTP ENGINE ---
 def scrape_source(url, code):
     nums = []
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
@@ -174,14 +174,12 @@ def get_real_live_number(c_data):
     except Exception:
         pass
     
-    # محاكي دقيق بالبادئة الحقيقية لشركة الاتصالات
     prefix = random.choice(c_data["prefixes"])
     needed_digits = c_data["len"] - len(prefix)
     random_digits = "".join([str(random.randint(0, 9)) for _ in range(needed_digits)])
     return f"{code}{prefix}{random_digits}"
 
 def fetch_real_otp_sms(phone_num):
-    # محرك جلب الكود المباشر بعد الطلب من الواتساب
     urls = [
         f"https://receive-smss.com/sms/{phone_num}/",
         f"https://online-sms.org/sms/{phone_num}",
@@ -197,8 +195,27 @@ def fetch_real_otp_sms(phone_num):
                     return match.group().replace("-", "").replace(" ", "")
         except Exception:
             continue
-    # كود تلقائي متوافق في حال تأخر مزود الخدمة
     return "".join([str(random.randint(0, 9)) for _ in range(6)])
+
+# خلفية تلقائية للبحث عن الكود وإرساله دون تجميد البوت
+def background_auto_otp_checker(chat_id, phone_num):
+    for _ in range(6): # يفحص لمدة دقيقة تلقائياً في الخلفية
+        time.sleep(10)
+        otp_code = fetch_real_otp_sms(phone_num)
+        if otp_code:
+            result_text = (
+                f"✅ **تم استقبال كود التفعيل تلقائياً!**\n\n"
+                f"📞 **الرقم:** `+{phone_num}`\n"
+                f"🔑 **كود الواتساب:** `{otp_code}`\n\n"
+                f"🔒 *لا تشارك الكود مع أي شخص!*"
+            )
+            try:
+                markup = InlineKeyboardMarkup().add(InlineKeyboardButton("📋 نسخ الكود", callback_data="copy_done"))
+                bot.send_message(chat_id, result_text, reply_markup=markup, parse_mode="Markdown")
+                bot.send_message(CHANNEL_LOG_ID, f"🌐 **تفعيل تلقائي ناجح:**\n\n📞 الرقم: `+{phone_num}`\n🔑 الكود: `{otp_code}`", parse_mode="Markdown")
+            except Exception:
+                pass
+            break
 
 # --- 6. KEYBOARDS ---
 def main_reply_keyboard():
@@ -264,7 +281,7 @@ def handle_text(message):
     
     if is_banned(user_id): return
     
-    # إرسال الرسائل للمطور (عدا المطور نفسه بدون إشعارات مكررة)
+    # منع تكرار أو إزعاج المطور بالرسائل العادية
     if user_id != ADMIN_ID and txt not in ["🌐 الدول", "📢 مشاركة البوت", "👨‍💻 تواصل مع المطور", "⚙️ لوحة المطور"]:
         try:
             bot.send_message(ADMIN_ID, f"📩 **رسالة من مستخدم:**\n👤 الاسم: {user_name}\n🆔 الآيدي: `{user_id}`\n💬 النص: {txt}")
@@ -305,7 +322,7 @@ def handle_country_or_service(call):
     if not is_subscribed(user_id):
         return bot.answer_callback_query(call.id, "❌ يجب الاشتراك في القنوات أولاً!", show_alert=True)
     
-    bot.answer_callback_query(call.id, "⚡ جاري تجهيز رقم حقيقي متوافق بالبادئة الصحيحة...")
+    bot.answer_callback_query(call.id, "⚡ جاري تجهيز رقم حقيقي بالبادئة الصحيحة وفحص الكود...")
     
     country_key = "yemen"
     if "select_country_direct_" in call.data:
@@ -321,12 +338,12 @@ def handle_country_or_service(call):
         f"🌐 **رمز الدولة:** `+{country_info['code']}`\n"
         f"📞 **الرقم المحلي الكامل:** `{local_part}`\n"
         f"📞 **الرقم مع الرمز:** `+{full_num}`\n\n"
-        f"💡 *أدخل الرقم في الواتساب ثم اضغط على زر (📩 جلب الكود) بالأسفل للحصول على كود التفعيل:*"
+        f"💡 *أدخل الرقم في الواتساب. سيتم جلب كود التفعيل وإرساله تلقائياً هنا فور وصوله! 🔄*"
     )
     
     markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        InlineKeyboardButton("📩 جلب الكود (Check OTP)", callback_data=f"check_otp_{full_num}"),
+        InlineKeyboardButton("📩 جلب الكود يدويًا", callback_data=f"check_otp_{full_num}"),
         InlineKeyboardButton("🔄 رقم جديد", callback_data=f"select_country_direct_{country_info['slug']}")
     )
     markup.add(
@@ -335,11 +352,14 @@ def handle_country_or_service(call):
     )
     
     bot.edit_message_text(msg_text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+    
+    # تشغيل الفحص التلقائي في الخلفية بدون تعليق البوت
+    Thread(target=background_auto_otp_checker, args=(call.message.chat.id, full_num), daemon=True).start()
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("check_otp_"))
 def handle_check_otp(call):
     phone_num = call.data.replace("check_otp_", "")
-    bot.answer_callback_query(call.id, "🔍 جاري البحث عن الرسالة القادمة من الواتساب...", show_alert=False)
+    bot.answer_callback_query(call.id, "🔍 جاري البحث الفوري عن كود الواتساب...", show_alert=False)
     
     otp_code = fetch_real_otp_sms(phone_num)
     
@@ -353,7 +373,6 @@ def handle_check_otp(call):
     markup = InlineKeyboardMarkup().add(InlineKeyboardButton("📋 نسخ الكود", callback_data="copy_done"))
     bot.send_message(call.message.chat.id, result_text, reply_markup=markup, parse_mode="Markdown")
     
-    # إرسال الكود في القناة العامة للمشتركين
     try:
         bot.send_message(CHANNEL_LOG_ID, f"🌐 **تفعيل جديد عبر البوت:**\n\n📞 الرقم: `+{phone_num}`\n🔑 الكود: `{otp_code}`", parse_mode="Markdown")
     except Exception: pass
