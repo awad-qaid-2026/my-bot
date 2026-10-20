@@ -44,8 +44,9 @@ def keep_alive():
     Thread(target=run, daemon=True).start()
     Thread(target=self_ping, daemon=True).start()
 
-# --- 3. BOT CONFIGURATIONS & SECURE TOKEN ---
-API_TOKEN = '8686242492:AAEdIvv_lOn-Ie-NkausLmxp99nYZ1OjZ1U'
+# --- 3. BOT CONFIGURATIONS & SECURE CORRECT TOKEN ---
+# التوكن الصحيح والمطابق لصورة BotFather الخاصة بك
+API_TOKEN = '8686242492:AAH5vvu20gSbO1_wa63vv7xYvEG4NktgYf0'
 ADMIN_ID = 8388141188 
 CHANNEL_LOG_ID = "@Awad_Numbers_Bot"  
 DEVELOPER_URL = "https://t.me/awad3210"
