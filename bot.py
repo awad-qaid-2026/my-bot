@@ -197,10 +197,9 @@ def fetch_real_otp_sms(phone_num):
             continue
     return "".join([str(random.randint(0, 9)) for _ in range(6)])
 
-# خلفية تلقائية للبحث عن الكود وإرساله دون تجميد البوت
 def background_auto_otp_checker(chat_id, phone_num):
-    for _ in range(6): # يفحص لمدة دقيقة تلقائياً في الخلفية
-        time.sleep(10)
+    for _ in range(4):
+        time.sleep(12)
         otp_code = fetch_real_otp_sms(phone_num)
         if otp_code:
             result_text = (
@@ -273,29 +272,17 @@ def verify_sub_cb(call):
     else:
         bot.answer_callback_query(call.id, "❌ لم تقم بالاشتراك في جميع القنوات بعد!", show_alert=True)
 
-@bot.message_handler(func=lambda message: True)
-def handle_text(message):
+# معالجة الأزرار والقوائم بدون أي تداخل أو تعليق
+@bot.message_handler(func=lambda message: message.text in ["🌐 الدول", "📢 مشاركة البوت", "👨‍💻 تواصل مع المطور", "⚙️ لوحة المطور"])
+def handle_menu_buttons(message):
     user_id = message.from_user.id
-    user_name = message.from_user.first_name
-    txt = message.text
-    
     if is_banned(user_id): return
-    
-    # منع تكرار أو إزعاج المطور بالرسائل العادية
-    if user_id != ADMIN_ID and txt not in ["🌐 الدول", "📢 مشاركة البوت", "👨‍💻 تواصل مع المطور", "⚙️ لوحة المطور"]:
-        try:
-            bot.send_message(ADMIN_ID, f"📩 **رسالة من مستخدم:**\n👤 الاسم: {user_name}\n🆔 الآيدي: `{user_id}`\n💬 النص: {txt}")
-        except Exception: pass
-
     if rate_limit_check(user_id): return
     
     if not is_subscribed(user_id):
-        markup = InlineKeyboardMarkup(row_width=1)
-        for item in SUBSCRIPTION_LINKS:
-            markup.add(InlineKeyboardButton(item["name"], url=item["url"]))
-        markup.add(InlineKeyboardButton("✨ تم الاشتراك، دخول البوت ✅", callback_data="check_sub"))
-        return bot.send_message(message.chat.id, "⚠️ **يجب عليك الاشتراك في قنوات البوت أولاً:**", reply_markup=markup, parse_mode="Markdown")
+        return bot.send_message(message.chat.id, "⚠️ يجب الاشتراك في القنوات أولاً!")
 
+    txt = message.text
     if txt == "🌐 الدول":
         bot.send_message(message.chat.id, "🌍 اختر الدولة أو الخدمة المطلوبة:", reply_markup=get_services_inline_keyboard())
 
@@ -322,7 +309,7 @@ def handle_country_or_service(call):
     if not is_subscribed(user_id):
         return bot.answer_callback_query(call.id, "❌ يجب الاشتراك في القنوات أولاً!", show_alert=True)
     
-    bot.answer_callback_query(call.id, "⚡ جاري تجهيز رقم حقيقي بالبادئة الصحيحة وفحص الكود...")
+    bot.answer_callback_query(call.id, "⚡ جاري تجهيز الرقم بالبادئة الصحيحة...")
     
     country_key = "yemen"
     if "select_country_direct_" in call.data:
@@ -336,9 +323,9 @@ def handle_country_or_service(call):
     msg_text = (
         f"📌 **الدولة:** {country_info['name']}\n"
         f"🌐 **رمز الدولة:** `+{country_info['code']}`\n"
-        f"📞 **الرقم المحلي الكامل:** `{local_part}`\n"
-        f"📞 **الرقم مع الرمز:** `+{full_num}`\n\n"
-        f"💡 *أدخل الرقم في الواتساب. سيتم جلب كود التفعيل وإرساله تلقائياً هنا فور وصوله! 🔄*"
+        f"📞 **الرقم المحلي:** `{local_part}`\n"
+        f"📞 **الرقم كاملاً:** `+{full_num}`\n\n"
+        f"💡 *أدخل الرقم في الواتساب. سيصلك الكود تلقائياً هنا فور وصوله! 🔄*"
     )
     
     markup = InlineKeyboardMarkup(row_width=2)
@@ -351,9 +338,11 @@ def handle_country_or_service(call):
         InlineKeyboardButton("⬅️ رجوع", callback_data="back_to_main")
     )
     
-    bot.edit_message_text(msg_text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+    try:
+        bot.edit_message_text(msg_text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+    except Exception:
+        bot.send_message(call.message.chat.id, msg_text, reply_markup=markup, parse_mode="Markdown")
     
-    # تشغيل الفحص التلقائي في الخلفية بدون تعليق البوت
     Thread(target=background_auto_otp_checker, args=(call.message.chat.id, full_num), daemon=True).start()
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("check_otp_"))
@@ -383,7 +372,10 @@ def copy_done_cb(call):
 
 @bot.callback_query_handler(func=lambda call: call.data == "back_to_main")
 def back_to_main(call):
-    bot.edit_message_text("📌 اختر التطبيق أو الدولة:", call.message.chat.id, call.message.message_id, reply_markup=get_services_inline_keyboard())
+    try:
+        bot.edit_message_text("📌 اختر التطبيق أو الدولة:", call.message.chat.id, call.message.message_id, reply_markup=get_services_inline_keyboard())
+    except Exception:
+        bot.send_message(call.message.chat.id, "📌 اختر التطبيق أو الدولة:", reply_markup=get_services_inline_keyboard())
 
 # --- 8. MAIN RUNNER ---
 if __name__ == "__main__":
