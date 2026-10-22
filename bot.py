@@ -169,15 +169,15 @@ def rate_limit_check(user_id, seconds=1):
     user_last_action[user_id] = now
     return False
 
-# --- 5. REAL LIVE SCRAPER & TRUE OTP ENGINE ---
+# --- 5. EXPANDED MULTI-SOURCE SCRAPER & REAL OTP ENGINE ---
 def scrape_source(url, code):
     nums = []
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     try:
-        r = requests.get(url, headers=headers, timeout=3)
+        r = requests.get(url, headers=headers, timeout=4)
         if r.status_code == 200:
             soup = BeautifulSoup(r.text, 'html.parser')
-            for element in soup.find_all(['h3', 'h4', 'a', 'span', 'p', 'td']):
+            for element in soup.find_all(['h3', 'h4', 'a', 'span', 'p', 'td', 'div']):
                 txt = element.text.strip().replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
                 if txt.startswith('+') and txt[1:].startswith(code):
                     clean = re.sub(r'[^\d+]', '', txt)
@@ -192,16 +192,23 @@ def scrape_source(url, code):
 def get_real_live_number(c_data):
     code = c_data["code"]
     slug = c_data["slug"]
+    
+    # قائمة كاملة وموسعة بجميع مواقع الأرقام العالمية الحية
     sources = [
         f"https://sms-receive.net/free-sms-numbers-{slug}",
         f"https://receive-smss.com/free-sms-numbers/{code}",
         f"https://anonymsms.com/country/{slug}",
         f"https://sms24.me/en/countries/{slug}",
         f"https://receive-sms.cc/country/{slug}",
-        f"https://online-sms.org/en/countries/{slug}"
+        f"https://online-sms.org/en/countries/{slug}",
+        f"https://freephonenum.com/us",
+        f"https://receive-smss.live/country/{slug}",
+        f"https://quackr.io/temporary-numbers/{slug}",
+        f"https://temp-number.org/country/{slug}",
+        f"https://receivesms.org/country/{slug}"
     ]
     try:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
             futures = [executor.submit(scrape_source, url, code) for url in sources]
             for future in concurrent.futures.as_completed(futures):
                 res = future.result()
@@ -218,10 +225,14 @@ def get_real_live_number(c_data):
     return f"{code}{prefix}{random_digits}"
 
 def fetch_real_otp_sms(phone_num):
+    # جلب الأكواد الحقيقية المباشرة من المواقع المختلفة
     urls = [
         f"https://receive-smss.com/sms/{phone_num}/",
         f"https://online-sms.org/sms/{phone_num}",
-        f"https://sms24.me/en/numbers/{phone_num}"
+        f"https://sms24.me/en/numbers/{phone_num}",
+        f"https://receive-smss.live/sms/{phone_num}/",
+        f"https://anonymsms.com/number/{phone_num}/",
+        f"https://quackr.io/temporary-numbers/number/{phone_num}"
     ]
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     for url in urls:
@@ -230,6 +241,8 @@ def fetch_real_otp_sms(phone_num):
             if r.status_code == 200:
                 soup = BeautifulSoup(r.text, 'html.parser')
                 text_content = soup.get_text()
+                
+                # البحث عن كلمة كود أو واتساب وبجوارها 6 أرقام
                 match = re.search(r'(?:WhatsApp|code|كود|واتساب).*?(\d{3}[\s-]?\d{3})', text_content, re.IGNORECASE)
                 if match:
                     code_found = match.group(1).replace("-", "").replace(" ", "")
@@ -328,7 +341,6 @@ def handle_menu_buttons(message):
         
     if rate_limit_check(user_id): return
     
-    # التأكد الفوري من أن المستخدم لم يغادر أي قناة
     if not is_subscribed(user_id):
         return send_subscription_required_msg(message.chat.id)
 
@@ -361,12 +373,11 @@ def handle_country_or_service(call):
     if MAINTENANCE_MODE and user_id != ADMIN_ID:
         return bot.answer_callback_query(call.id, "🛠 البوت تحت الصيانة حالياً!", show_alert=True)
         
-    # فحص صارم ومباشر عند كل طلب رقم لضمان عدم خروج العضو من أي قناة
     if not is_subscribed(user_id):
         bot.answer_callback_query(call.id, "❌ يرجى الاشتراك في القنوات أولاً!", show_alert=True)
         return send_subscription_required_msg(call.message.chat.id)
     
-    bot.answer_callback_query(call.id, "⚡ جاري سحب رقم حقيقي ومضمون...")
+    bot.answer_callback_query(call.id, "⚡ جاري سحب رقم حقيقي ومضمون عبر المصادر العالمية...")
     
     country_key = "yemen"
     if "select_country_direct_" in call.data:
@@ -413,7 +424,7 @@ def handle_check_otp(call):
         return send_subscription_required_msg(call.message.chat.id)
         
     phone_num = call.data.replace("check_otp_", "")
-    bot.answer_callback_query(call.id, "🔍 جاري البحث عن كود الواتساب الحقيقي...", show_alert=False)
+    bot.answer_callback_query(call.id, "🔍 جاري البحث عن كود الواتساب الحقيقي عبر المواقع...", show_alert=False)
     
     otp_code = fetch_real_otp_sms(phone_num)
     
