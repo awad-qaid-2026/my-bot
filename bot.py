@@ -25,7 +25,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "⚡ Legendary Master Bot Server (Pro Engine) is Active 24/7! ⚡"
+    return "⚡ Legendary Ultra Master Bot Server v6.0 Ultimate is Active 24/7! ⚡"
 
 def run():
     port = int(os.environ.get("PORT", 8080))
@@ -52,8 +52,9 @@ DEVELOPER_URL = "https://t.me/awad3210"
 
 bot = telebot.TeleBot(API_TOKEN)
 
-# وضع الصيانة
+# وضع الصيانة وإحصائيات التشغيل
 MAINTENANCE_MODE = False  
+bot_stats = {"numbers_generated": 0, "otps_fetched": 0}
 
 # قنوات الاشتراك الإجباري
 CHANNELS = [
@@ -83,7 +84,7 @@ SERVICES_DATA = {
     "imo": {"name": "IMO", "icon": "💬"}
 }
 
-# --- ربط التطبيقات بالدول العربية والأجنبية الأسطورية والمضمونة 100% للأكواد ---
+# --- ربط التطبيقات بالدول الأسطورية الفعالة 100% للأكواد ---
 SERVICES_COUNTRIES = {
     "whatsapp": {
         "yemen": {"name": "Yemen 🇾🇪 (شغالة نار 🔥)", "code": "967", "slug": "yemen", "len": 9, "prefixes": ["77", "73", "71", "78"]},
@@ -127,6 +128,7 @@ SERVICES_COUNTRIES = {
 }
 
 user_last_action = {}
+recent_numbers_cache = set()
 
 # --- 4. SECURITY & HELPERS ---
 def save_user(user_id):
@@ -179,7 +181,7 @@ def rate_limit_check(user_id, seconds=1):
     user_last_action[user_id] = now
     return False
 
-# --- 5. LEGENDARY MULTI-SOURCE SCRAPER ENGINE ---
+# --- 5. LEGENDARY ULTIMATE SCRAPER ENGINE ---
 def scrape_source(url, code):
     nums = []
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
@@ -216,25 +218,32 @@ def get_real_live_number(c_data):
     
     scraped_numbers = []
     try:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             futures = [executor.submit(scrape_source, url, code) for url in sources]
             for future in concurrent.futures.as_completed(futures):
                 res = future.result()
                 if res:
                     for num in res:
                         clean_num = num.replace("+", "")
-                        if len(clean_num) >= (len(code) + c_data['len'] - 2):
+                        if len(clean_num) >= (len(code) + c_data['len'] - 2) and clean_num not in recent_numbers_cache:
                             scraped_numbers.append(clean_num)
     except Exception:
         pass
     
     if scraped_numbers:
-        return random.choice(scraped_numbers)
-    
-    prefix = random.choice(c_data["prefixes"])
-    needed_digits = c_data["len"] - len(prefix)
-    random_digits = "".join([str(random.randint(0, 9)) for _ in range(needed_digits)])
-    return f"{code}{prefix}{random_digits}"
+        chosen = random.choice(scraped_numbers)
+    else:
+        prefix = random.choice(c_data["prefixes"])
+        needed_digits = c_data["len"] - len(prefix)
+        random_digits = "".join([str(random.randint(0, 9)) for _ in range(needed_digits)])
+        chosen = f"{code}{prefix}{random_digits}"
+        
+    recent_numbers_cache.add(chosen)
+    if len(recent_numbers_cache) > 200:
+        recent_numbers_cache.pop()
+        
+    bot_stats["numbers_generated"] += 1
+    return chosen
 
 def fetch_real_otp_sms(phone_num):
     urls = [
@@ -266,10 +275,11 @@ def fetch_real_otp_sms(phone_num):
     return None
 
 def background_auto_otp_checker(chat_id, phone_num, service_name, country_name, service_key, country_key):
-    for _ in range(25):
-        time.sleep(8)
+    for _ in range(35):
+        time.sleep(6)
         otp_code = fetch_real_otp_sms(phone_num)
         if otp_code:
+            bot_stats["otps_fetched"] += 1
             result_text = (
                 f"✅ **تم استقبال كود التفعيل الحقيقي بنجاح!**\n\n"
                 f"📌 **التطبيق:** {service_name}\n"
@@ -281,7 +291,6 @@ def background_auto_otp_checker(chat_id, phone_num, service_name, country_name, 
                 markup = InlineKeyboardMarkup().add(InlineKeyboardButton("📋 نسخ الكود", callback_data="copy_done"))
                 bot.send_message(chat_id, result_text, reply_markup=markup, parse_mode="Markdown")
                 
-                # نشر الكود تلقائياً في قناة/جروب الأكواد بالتصميم الأسطوري المطلوب تماماً
                 log_markup = InlineKeyboardMarkup(row_width=2)
                 log_markup.add(
                     InlineKeyboardButton("🌐 Change Country", callback_data=f"show_countries_{service_key}"),
@@ -332,7 +341,7 @@ def get_countries_for_service_keyboard(service_key):
     return markup
 
 def send_welcome(chat_id):
-    msg = "مرحباً بك يا صديقي في نظام الأرقام الأسطوري الفوري! 👋\nاختر التطبيق المراد تفعيله من القائمة بالأسفل:"
+    msg = "مرحباً بك يا صديقي في نظام الأرقام الأسطوري الفائق v6.0! 👋\nاختر التطبيق المراد تفعيله من القائمة بالأسفل:"
     bot.send_message(chat_id, msg, reply_markup=main_reply_keyboard())
     bot.send_message(chat_id, "📌 **اختر التطبيق أولاً:**", reply_markup=get_services_only_keyboard())
 
@@ -396,7 +405,41 @@ def handle_menu_buttons(message):
             return bot.send_message(message.chat.id, "❌ هذه اللوحة خاصة بالمطور فقط.")
         total_users = get_users_count()
         status_text = "مفعلة 🛠" if MAINTENANCE_MODE else "معطلة (يعمل طبيعي) 🟢"
-        bot.send_message(message.chat.id, f"⚙️ **لوحة التحكم للمطور (الوضع الأسطوري):**\n\n👥 إجمالي المستخدمين: `{total_users}` عضو\n🛠 وضع الصيانة: `{status_text}`\n🌐 السيرفر يعمل بأعلى كفاءة 24/7", parse_mode="Markdown")
+        
+        admin_markup = InlineKeyboardMarkup(row_width=2)
+        admin_markup.add(
+            InlineKeyboardButton("📊 إحصائيات البوت", callback_data="admin_stats"),
+            InlineKeyboardButton("🧹 تنظيف الكاش", callback_data="admin_clear_cache")
+        )
+        
+        bot.send_message(
+            message.chat.id, 
+            f"⚙️ **لوحة التحكم للمطور (الوضع الأسطوري الفائق v6.0):**\n\n"
+            f"👥 إجمالي المستخدمين: `{total_users}` عضو\n"
+            f"🛠 وضع الصيانة: `{status_text}`\n"
+            f"🌐 المحرك السحابي يعمل بأقصى طاقة 24/7", 
+            reply_markup=admin_markup, 
+            parse_mode="Markdown"
+        )
+
+@bot.callback_query_handler(func=lambda call: call.data in ["admin_stats", "admin_clear_cache"])
+def handle_admin_callbacks(call):
+    if call.from_user.id != ADMIN_ID:
+        return bot.answer_callback_query(call.id, "❌ للمطور فقط!", show_alert=True)
+        
+    if call.data == "admin_stats":
+        stats_msg = (
+            f"📊 **إحصائيات البوت الحية:**\n\n"
+            f"📞 إجمالي الأرقام المُولدة والممسوحة: `{bot_stats['numbers_generated']}`\n"
+            f"🔑 إجمالي الأكواد المُستلمة بنجاح: `{bot_stats['otps_fetched']}`\n"
+            f"👥 إجمالي المستخدمين: `{get_users_count()}`"
+        )
+        bot.answer_callback_query(call.id, "📊 إليك إحصائيات البوت الشاملة", show_alert=False)
+        bot.send_message(call.message.chat.id, stats_msg, parse_mode="Markdown")
+        
+    elif call.data == "admin_clear_cache":
+        recent_numbers_cache.clear()
+        bot.answer_callback_query(call.id, "✅ تم تنظيف الذاكرة المؤقتة بنجاح!", show_alert=True)
 
 @bot.callback_query_handler(func=lambda call: call.data == "show_all_services")
 def show_all_services_cb(call):
@@ -416,7 +459,7 @@ def show_countries_cb(call):
     service_key = call.data.replace("show_countries_", "")
     service_info = SERVICES_DATA.get(service_key, {"name": "التطبيق"})
     
-    msg_text = f"🔥 **الدول العربية والأجنبية المضمونة 100% لتفعيل ({service_info['name']}):**"
+    msg_text = f"🔥 **الدول المضمونة 100% لتفعيل ({service_info['name']}):**"
     try:
         bot.edit_message_text(msg_text, call.message.chat.id, call.message.message_id, reply_markup=get_countries_for_service_keyboard(service_key))
     except Exception:
@@ -434,7 +477,7 @@ def get_number_cb(call):
         bot.answer_callback_query(call.id, "❌ يرجى الاشتراك في القنوات أولاً!", show_alert=True)
         return send_subscription_required_msg(call.message.chat.id)
     
-    bot.answer_callback_query(call.id, "⚡ جاري سحب رقم حقيقي ومضمون بسروة البرق...")
+    bot.answer_callback_query(call.id, "⚡ جاري سحب رقم أسطوري حقيقي ومضمون...")
     
     parts = call.data.replace("get_num_", "").split("_")
     service_key = parts[0]
@@ -452,7 +495,7 @@ def get_number_cb(call):
         f"🌐 **رمز الدولة:** `+{country_info['code']}`\n"
         f"📞 **الرقم المحلي:** `{local_part}`\n"
         f"📞 **الرقم كاملاً:** `+{full_num}`\n\n"
-        f"💡 *أدخل هذا الرقم في تطبيق {service_info['name']} الآن. البوت يبحث عن الكود تلقائياً في الخلفية وسيرسله لك فور وصوله بدقة تامة! ⏳*"
+        f"💡 *أدخل هذا الرقم في تطبيق {service_info['name']} الآن. المحرك الأسطوري يبحث عن الكود تلقائياً في الخلفية وسيرسله لك فور وصوله بدقة فائقة! ⏳*"
     )
     
     markup = InlineKeyboardMarkup(row_width=2)
@@ -479,7 +522,7 @@ def copy_done_cb(call):
 # --- 8. MAIN RUNNER ---
 if __name__ == "__main__":
     keep_alive()
-    print("Legendary Master Bot (Pro Engine) is running 24/7...")
+    print("Legendary Ultra Master Bot v6.0 Ultimate is running 24/7...")
     while True:
         try:
             bot.infinity_polling(timeout=20, long_polling_timeout=10)
