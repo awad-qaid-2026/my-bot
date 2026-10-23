@@ -73,17 +73,17 @@ SUBSCRIPTION_LINKS = [
     {"name": "💬 جروب المناقشة والتبادل", "url": "https://t.me/+ohwA2pwywVxhOTVk"}
 ]
 
-# قائمة التطبيقات النشطة
+# قائمة التطبيقات النشطة مع الإيموجي المناسب
 SERVICES_DATA = {
-    "whatsapp": {"name": "WhatsApp 💬", "icon": "🟢"},
-    "telegram": {"name": "Telegram ✈️", "icon": "🔵"},
-    "facebook": {"name": "Facebook 👤", "icon": "🌐"},
-    "instagram": {"name": "Instagram 📸", "icon": "📷"},
-    "tiktok": {"name": "TikTok 🎵", "icon": "🎶"},
-    "imo": {"name": "IMO 💬", "icon": "🟣"}
+    "whatsapp": {"name": "WhatsApp", "icon": "💬"},
+    "telegram": {"name": "Telegram", "icon": "✈️"},
+    "facebook": {"name": "Facebook", "icon": "👤"},
+    "instagram": {"name": "Instagram", "icon": "📸"},
+    "tiktok": {"name": "TikTok", "icon": "🎵"},
+    "imo": {"name": "IMO", "icon": "💬"}
 }
 
-# --- ربط كل تطبيق بالدول والبادئات الخاصة به والتي تعمل عليه بكفاءة نارية ---
+# --- ربط كل تطبيق بالدول والبادئات الخاصة به ---
 SERVICES_COUNTRIES = {
     "whatsapp": {
         "yemen": {"name": "Yemen 🇾🇪 (شغالة نار 🔥)", "code": "967", "slug": "yemen", "len": 9, "prefixes": ["77", "73", "71", "78"]},
@@ -248,7 +248,7 @@ def fetch_real_otp_sms(phone_num):
             continue
     return None
 
-def background_auto_otp_checker(chat_id, phone_num, service_name):
+def background_auto_otp_checker(chat_id, phone_num, service_name, country_name):
     for _ in range(15):
         time.sleep(10)
         otp_code = fetch_real_otp_sms(phone_num)
@@ -263,7 +263,24 @@ def background_auto_otp_checker(chat_id, phone_num, service_name):
             try:
                 markup = InlineKeyboardMarkup().add(InlineKeyboardButton("📋 نسخ الكود", callback_data="copy_done"))
                 bot.send_message(chat_id, result_text, reply_markup=markup, parse_mode="Markdown")
-                bot.send_message(CHANNEL_LOG_ID, f"🌐 **تفعيل حقيقي ناجح ({service_name}):**\n\n📞 الرقم: `+{phone_num}`\n🔑 الكود: `{otp_code}`", parse_mode="Markdown")
+                
+                # إرسال التنبيه إلى جروب/قناة الأكواد بالتصميم الاحترافي المطلوب (مثل الصورة تماماً)
+                bot_info = bot.get_me()
+                log_markup = InlineKeyboardMarkup(row_width=2)
+                log_markup.add(
+                    InlineKeyboardButton("📢 Channel", url=SUBSCRIPTION_LINKS[0]["url"]),
+                    InlineKeyboardButton(f"🔒 {otp_code}", callback_data="copy_done"),
+                )
+                log_markup.add(InlineKeyboardButton("🤖 Get Number", url=f"https://t.me/{bot_info.username}"))
+                
+                log_text = (
+                    f"**TRICKS MASTAR BOT PANEL**\n"
+                    f"🇾🇪 #{country_name.split()[0]} {service_name} `+{phone_num}` | 🔊 Arabic\n\n"
+                    f"# {otp_code} هو رمز {service_name} الخاص بك\n\n"
+                    f"🔗 Prefix: `/pre {phone_num[:7]}`"
+                )
+                bot.send_message(CHANNEL_LOG_ID, log_text, reply_markup=log_markup, parse_mode="Markdown")
+                
             except Exception:
                 pass
             break
@@ -279,16 +296,14 @@ def main_reply_keyboard():
     )
     return markup
 
-# 1. قائمة التطبيقات فقط (الخطوة الأولى)
 def get_services_only_keyboard():
     markup = InlineKeyboardMarkup(row_width=2)
     buttons = []
     for s_key, s_data in SERVICES_DATA.items():
-        buttons.append(InlineKeyboardButton(f"{s_data['name']}", callback_data=f"show_countries_{s_key}"))
+        buttons.append(InlineKeyboardButton(f"{s_data['icon']} {s_data['name']}", callback_data=f"show_countries_{s_key}"))
     markup.add(*buttons)
     return markup
 
-# 2. قائمة الدول المخصصة والنشطة لكل تطبيق (الخطوة الثانية)
 def get_countries_for_service_keyboard(service_key):
     markup = InlineKeyboardMarkup(row_width=2)
     countries_dict = SERVICES_COUNTRIES.get(service_key, {})
@@ -439,7 +454,7 @@ def get_number_cb(call):
     except Exception:
         bot.send_message(call.message.chat.id, msg_text, reply_markup=markup, parse_mode="Markdown")
     
-    Thread(target=background_auto_otp_checker, args=(call.message.chat.id, full_num, service_info['name']), daemon=True).start()
+    Thread(target=background_auto_otp_checker, args=(call.message.chat.id, full_num, service_info['name'], country_info['name']), daemon=True).start()
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("check_otp_"))
 def handle_check_otp(call):
@@ -466,7 +481,21 @@ def handle_check_otp(call):
         markup = InlineKeyboardMarkup().add(InlineKeyboardButton("📋 نسخ الكود", callback_data="copy_done"))
         bot.send_message(call.message.chat.id, result_text, reply_markup=markup, parse_mode="Markdown")
         try:
-            bot.send_message(CHANNEL_LOG_ID, f"🌐 **تفعيل حقيقي ناجح:**\n\n📞 الرقم: `+{phone_num}`\n🔑 الكود: `{otp_code}`", parse_mode="Markdown")
+            bot_info = bot.get_me()
+            log_markup = InlineKeyboardMarkup(row_width=2)
+            log_markup.add(
+                InlineKeyboardButton("📢 Channel", url=SUBSCRIPTION_LINKS[0]["url"]),
+                InlineKeyboardButton(f"🔒 {otp_code}", callback_data="copy_done"),
+            )
+            log_markup.add(InlineKeyboardButton("🤖 Get Number", url=f"https://t.me/{bot_info.username}"))
+            
+            log_text = (
+                f"**TRICKS MASTAR BOT PANEL**\n"
+                f"🇾🇪 #YE Code Found `+{phone_num}` | 🔊 Arabic\n\n"
+                f"# {otp_code} هو رمز التفعيل الخاص بك\n\n"
+                f"🔗 Prefix: `/pre {phone_num[:7]}`"
+            )
+            bot.send_message(CHANNEL_LOG_ID, log_text, reply_markup=log_markup, parse_mode="Markdown")
         except Exception: pass
     else:
         bot.answer_callback_query(call.id, "⏳ لم يصل الكود بعد. تأكد من إدخال الرقم في التطبيق واطلب إعادة إرسال الرسالة.", show_alert=True)
