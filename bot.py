@@ -73,7 +73,7 @@ SUBSCRIPTION_LINKS = [
     {"name": "💬 جروب المناقشة والتبادل", "url": "https://t.me/+ohwA2pwywVxhOTVk"}
 ]
 
-# قائمة التطبيقات النشطة مع الإيموجي المناسب
+# قائمة التطبيقات النشطة
 SERVICES_DATA = {
     "whatsapp": {"name": "WhatsApp", "icon": "💬"},
     "telegram": {"name": "Telegram", "icon": "✈️"},
@@ -264,14 +264,14 @@ def background_auto_otp_checker(chat_id, phone_num, service_name, country_name):
                 markup = InlineKeyboardMarkup().add(InlineKeyboardButton("📋 نسخ الكود", callback_data="copy_done"))
                 bot.send_message(chat_id, result_text, reply_markup=markup, parse_mode="Markdown")
                 
-                # إرسال التنبيه إلى جروب/قناة الأكواد بالتصميم الاحترافي المطلوب (مثل الصورة تماماً)
+                # إرسال التنبيه إلى جروب/قناة الأكواد بالتصميم الاحترافي مع زر OTP Group المطلوبة
                 bot_info = bot.get_me()
                 log_markup = InlineKeyboardMarkup(row_width=2)
                 log_markup.add(
-                    InlineKeyboardButton("📢 Channel", url=SUBSCRIPTION_LINKS[0]["url"]),
-                    InlineKeyboardButton(f"🔒 {otp_code}", callback_data="copy_done"),
+                    InlineKeyboardButton("🌐 Change Country", callback_data="show_all_services"),
+                    InlineKeyboardButton("🔄 Change Number", callback_data="show_all_services"),
                 )
-                log_markup.add(InlineKeyboardButton("🤖 Get Number", url=f"https://t.me/{bot_info.username}"))
+                log_markup.add(InlineKeyboardButton("✉️ OTP Group", url=SUBSCRIPTION_LINKS[0]["url"]))
                 
                 log_text = (
                     f"**TRICKS MASTAR BOT PANEL**\n"
@@ -484,10 +484,10 @@ def handle_check_otp(call):
             bot_info = bot.get_me()
             log_markup = InlineKeyboardMarkup(row_width=2)
             log_markup.add(
-                InlineKeyboardButton("📢 Channel", url=SUBSCRIPTION_LINKS[0]["url"]),
-                InlineKeyboardButton(f"🔒 {otp_code}", callback_data="copy_done"),
+                InlineKeyboardButton("🌐 Change Country", callback_data="show_all_services"),
+                InlineKeyboardButton("🔄 Change Number", callback_data="show_all_services"),
             )
-            log_markup.add(InlineKeyboardButton("🤖 Get Number", url=f"https://t.me/{bot_info.username}"))
+            log_markup.add(InlineKeyboardButton("✉️ OTP Group", url=SUBSCRIPTION_LINKS[0]["url"]))
             
             log_text = (
                 f"**TRICKS MASTAR BOT PANEL**\n"
