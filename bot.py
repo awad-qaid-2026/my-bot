@@ -25,7 +25,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "⚡ Legendary Ultra Master Bot Server v7.0 Ultimate is Active 24/7! ⚡"
+    return "⚡ Legendary Master Bot Server v8.0 Ultimate is Active 24/7! ⚡"
 
 def run():
     port = int(os.environ.get("PORT", 8080))
@@ -131,6 +131,12 @@ user_last_action = {}
 recent_numbers_cache = set()
 
 # --- 4. SECURITY & HELPERS ---
+def mask_phone_number(phone_num):
+    """إخفاء الأرقام الوسطى بـ ثلاث نجمات لحمايتها"""
+    if len(phone_num) > 7:
+        return phone_num[:5] + "••" + phone_num[-3:]
+    return phone_num
+
 def save_user(user_id):
     if not os.path.exists("users.txt"):
         open("users.txt", "w").close()
@@ -274,12 +280,6 @@ def fetch_real_otp_sms(phone_num):
             continue
     return None
 
-def mask_phone_number(phone_num):
-    if len(phone_num) > 7:
-        # إخفاء المنتصف بـ ثلاث نجمات لضمان عدم سرقة الرقم
-        return phone_num[:5] + "••" + phone_num[-3:]
-    return phone_num
-
 def background_auto_otp_checker(chat_id, phone_num, service_name, country_name, service_key, country_key):
     for _ in range(35):
         time.sleep(6)
@@ -297,21 +297,19 @@ def background_auto_otp_checker(chat_id, phone_num, service_name, country_name, 
                 markup = InlineKeyboardMarkup().add(InlineKeyboardButton("📋 نسخ الكود", callback_data="copy_done"))
                 bot.send_message(chat_id, result_text, reply_markup=markup, parse_mode="Markdown")
                 
-                # إخفاء المنتصف في القناة بـ 3 نجمات
-                masked_num = mask_phone_number(phone_num)
                 bot_info = bot.get_me()
-                bot_username = bot_info.username
+                masked_num = mask_phone_number(phone_num)
                 
                 log_markup = InlineKeyboardMarkup(row_width=2)
                 log_markup.add(
                     InlineKeyboardButton("📢 Channel", url=SUBSCRIPTION_LINKS[0]["url"]),
                     InlineKeyboardButton(f"🔒 {otp_code}", callback_data="copy_done")
                 )
-                log_markup.add(InlineKeyboardButton("🤖 Get Number", url=f"https://t.me/{bot_username}"))
+                log_markup.add(InlineKeyboardButton("🤖 Get Number", url=f"https://t.me/{bot_info.username}"))
                 
                 log_text = (
                     f"**TRICKS MASTAR BOT PANEL**\n"
-                    f"🇾🇪 #{country_name.split()[0]} {service_name} `+{masked_num}` | 🔊 Arabic\n\n"
+                    f"🌍 #{country_name.split()[0]} {service_name} `+{masked_num}` | 🔊 Arabic\n\n"
                     f"# {otp_code} هو رمز {service_name} الخاص بك\n\n"
                     f"🔗 Prefix: `/pre {phone_num[:7]}`"
                 )
@@ -352,7 +350,7 @@ def get_countries_for_service_keyboard(service_key):
     return markup
 
 def send_welcome(chat_id):
-    msg = "مرحباً بك يا صديقي في نظام الأرقام الأسطوري الفائق v7.0! 👋\nاختر التطبيق المراد تفعيله من القائمة بالأسفل:"
+    msg = "مرحباً بك يا صديقي في نظام الأرقام الأسطوري الفائق v8.0! 👋\nاختر التطبيق المراد تفعيله من القائمة بالأسفل:"
     bot.send_message(chat_id, msg, reply_markup=main_reply_keyboard())
     bot.send_message(chat_id, "📌 **اختر التطبيق أولاً:**", reply_markup=get_services_only_keyboard())
 
@@ -425,7 +423,7 @@ def handle_menu_buttons(message):
         
         bot.send_message(
             message.chat.id, 
-            f"⚙️ **لوحة التحكم للمطور (الوضع الأسطوري الفائق v7.0):**\n\n"
+            f"⚙️ **لوحة التحكم للمطور (الوضع الأسطوري الفائق v8.0):**\n\n"
             f"👥 إجمالي المستخدمين: `{total_users}` عضو\n"
             f"🛠 وضع الصيانة: `{status_text}`\n"
             f"🌐 المحرك السحابي يعمل بأقصى طاقة 24/7", 
@@ -500,13 +498,15 @@ def get_number_cb(call):
     full_num = get_real_live_number(country_info)
     local_part = full_num[len(country_info['code']):]
     
+    # رسالة التنبيه الذكية مع إشعار الدولة وتوجيه الـ VPN تماماً مثل طلبك
     msg_text = (
-        f"🔥 **التطبيق:** {service_info['name']}\n"
-        f"📌 **الدولة المضمونة:** {country_info['name']}\n"
-        f"🌐 **رمز الدولة:** `+{country_info['code']}`\n"
+        f"🔥 **تنبيه نظام الأرقام الفورية:**\n"
+        f"🌐 **الدولة:** {country_info['name']} **شغالة نار 🔥**\n"
+        f"📌 **التطبيق المستهدف:** {service_info['name']}\n"
+        f"📞 **رمز الدولة:** `+{country_info['code']}`\n"
         f"📞 **الرقم المحلي:** `{local_part}`\n"
         f"📞 **الرقم كاملاً:** `+{full_num}`\n\n"
-        f"💡 *أدخل هذا الرقم في تطبيق {service_info['name']} الآن. المحرك الأسطوري يبحث عن الكود تلقائياً في الخلفية وسيرسله لك فور وصوله بدقة فائقة! ⏳*"
+        f"💡 *أدخل هذا الرقم في تطبيق {service_info['name']} الآن. إذا تأخر الكود معك قليلاً، يُرجى تشغيل تطبيق **VPN** لضمان سرعة الاستلام الفوري! ⚡*"
     )
     
     markup = InlineKeyboardMarkup(row_width=2)
@@ -533,7 +533,7 @@ def copy_done_cb(call):
 # --- 8. MAIN RUNNER ---
 if __name__ == "__main__":
     keep_alive()
-    print("Legendary Ultra Master Bot v7.0 Ultimate is running 24/7...")
+    print("Legendary Master Bot v8.0 Ultimate is running 24/7...")
     while True:
         try:
             bot.infinity_polling(timeout=20, long_polling_timeout=10)
