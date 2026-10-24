@@ -25,7 +25,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "⚡ Elite Master Bot Server v12.0 (Ultimate Protection) is Active 24/7! ⚡"
+    return "⚡ Elite Master Bot Server v12.0 is Active 24/7! ⚡"
 
 def run():
     port = int(os.environ.get("PORT", 8080))
@@ -55,9 +55,13 @@ bot = telebot.TeleBot(API_TOKEN)
 MAINTENANCE_MODE = False  
 bot_stats = {"numbers_generated": 0, "otps_fetched": 0}
 
-# قناتك الخاصة بك وحدك للاشتراك الإجباري وحماية البوت
+# قنواتك الحقيقية للاشتراك الإجباري وحماية البوت من المستخدمين الوهميين
 CHANNELS_DATA = [
-    {"username": "@Awad_Numbers_Bot", "name": "📢 قناة البوت الرسمية", "url": "https://t.me/Awad_Numbers_Bot"}
+    {"username": "@Awad_Numbers_Bot", "name": "📢 قناة البوت الرسمية", "url": "https://t.me/Awad_Numbers_Bot"},
+    {"username": "@v_o_lti", "name": "📢 قناة جديدة", "url": "https://t.me/v_o_lti"},
+    {"username": "@jzbznznx", "name": "📢 قناة عبارات بشكل عام", "url": "https://t.me/jzbznznx"},
+    {"username": "@breakthroughawad210", "name": "📢 تعليم اختراق الجوالات وتوقيف الواتساب", "url": "https://t.me/breakthroughawad210"},
+    {"username": "@sn6hdbdn19dndw", "name": "📢 قناة الدعم الاحتياطية", "url": "https://t.me/sn6hdbdn19dndw"}
 ]
 
 GROUP_LINK = {"name": "💬 جروب المناقشة والتبادل", "url": "https://t.me/+ohwA2pwywVxhOTVk"}
@@ -160,11 +164,11 @@ def send_targeted_subscription_msg(chat_id, user_id):
     markup = InlineKeyboardMarkup(row_width=1)
     for ch in unsub_list:
         markup.add(InlineKeyboardButton(ch["name"], url=ch["url"]))
-    markup.add(InlineKeyboardButton("✨ تم الاشتراك في قناتي، دخول البوت ✅", callback_data="check_sub"))
+    markup.add(InlineKeyboardButton("✨ تم الاشتراك في قنوات المطور، دخول البوت ✅", callback_data="check_sub"))
     
     msg = (
         "⚠️ **عذراً يا صديقي!**\n\n"
-        "📌 **لاستخدام البوت والحصول على الأرقام، يجب عليك الاشتراك في قناة المطور أولاً:**"
+        "📌 **لاستخدام البوت والحصول على الأرقام، يجب عليك الاشتراك في قنواتنا الرسمية أولاً:**"
     )
     bot.send_message(chat_id, msg, reply_markup=markup, parse_mode="Markdown")
 
@@ -330,7 +334,7 @@ def start_cmd(message):
     
     if not check_subscription_status(user_id):
         return send_targeted_subscription_msg(message.chat.id, user_id)
-    
+        
     send_welcome(message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data == "check_sub")
@@ -341,7 +345,7 @@ def verify_sub_cb(call):
         except Exception: pass
         send_welcome(call.message.chat.id)
     else:
-        bot.answer_callback_query(call.id, "❌ يجب عليك الاشتراك في القناة أولاً!", show_alert=True)
+        bot.answer_callback_query(call.id, "❌ يجب عليك الاشتراك في جميع القنوات أولاً!", show_alert=True)
 
 @bot.message_handler(func=lambda message: message.text in ["🌐 الأقسام والتطبيقات", "📢 مشاركة البوت", "👨‍💻 تواصل مع المطور", "⚙️ لوحة المطور"])
 def handle_menu_buttons(message):
@@ -428,7 +432,7 @@ def get_number_cb(call):
     except Exception:
         bot.send_message(call.message.chat.id, msg_text, reply_markup=markup, parse_mode="Markdown")
     
-    Thread(target=background_auto_otp_checker, args=(call.message.chat.id, full_num, service_info['name'], country_info['name'], service_key, country_key), daemon=True).strart() # type: ignore
+    Thread(target=background_auto_otp_checker, args=(call.message.chat.id, full_num, service_info['name'], country_info['name'], service_key, country_key), daemon=True).start()
 
 @bot.callback_query_handler(func=lambda call: call.data == "copy_done")
 def copy_done_cb(call):
