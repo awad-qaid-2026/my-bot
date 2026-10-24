@@ -55,19 +55,13 @@ bot = telebot.TeleBot(API_TOKEN)
 MAINTENANCE_MODE = False  
 bot_stats = {"numbers_generated": 0, "otps_fetched": 0}
 
-# القنوات الرسمية المعتمدة (قنواتك أنت فقط لضمان الأمان التام ومنع القنوات الوهمية)
+# قناتك الخاصة بك وحدك للاشتراك الإجباري وحماية البوت
 CHANNELS_DATA = [
-    {"username": "@Awad_Numbers_Bot", "name": "📢 قناة البوت الرسمية", "url": "https://t.me/Awad_Numbers_Bot"},
-    {"username": "@v_o_lti", "name": "📢 قناة جديدة", "url": "https://t.me/v_o_lti"},
-    {"username": "@jzbznznx", "name": "📢 قناة عبارات بشكل عام", "url": "https://t.me/jzbznznx"},
-    {"username": "@breakthroughawad210", "name": "📢 تعليم اختراق الجوالات وتوقيف الواتساب", "url": "https://t.me/breakthroughawad210"},
-    {"username": "@sn6hdbdn19dndw", "name": "📢 قناة الدعم الاحتياطية", "url": "https://t.me/sn6hdbdn19dndw"}
+    {"username": "@Awad_Numbers_Bot", "name": "📢 قناة البوت الرسمية", "url": "https://t.me/Awad_Numbers_Bot"}
 ]
 
-# رابط جروب المناقشة والتبادل
 GROUP_LINK = {"name": "💬 جروب المناقشة والتبادل", "url": "https://t.me/+ohwA2pwywVxhOTVk"}
 
-# التطبيقات النشطة
 SERVICES_DATA = {
     "whatsapp": {"name": "WhatsApp", "icon": "💬"},
     "telegram": {"name": "Telegram", "icon": "✈️"},
@@ -77,7 +71,6 @@ SERVICES_DATA = {
     "imo": {"name": "IMO", "icon": "💬"}
 }
 
-# الدول الفعالة والمضمونة 100% للأكواد
 SERVICES_COUNTRIES = {
     "whatsapp": {
         "yemen": {"name": "Yemen 🇾🇪 (شغالة نار 🔥)", "code": "967", "slug": "yemen", "len": 9, "prefixes": ["77", "73", "71", "78"]},
@@ -123,7 +116,6 @@ SERVICES_COUNTRIES = {
 user_last_action = {}
 recent_numbers_cache = set()
 
-# --- 4. SECURITY & HELPER FUNCTIONS ---
 def mask_phone_number(phone_num):
     if len(phone_num) > 7:
         return phone_num[:5] + "••" + phone_num[-3:]
@@ -149,7 +141,6 @@ def is_banned(user_id):
         return str(user_id) in f.read().splitlines()
 
 def get_unsubscribed_channels(user_id):
-    """فحص دقيق: إرجاع القنوات التي لم يشترك بها المستخدم أو قام بمغادرتها"""
     if user_id == ADMIN_ID: return []
     unsubscribed = []
     for ch in CHANNELS_DATA:
@@ -167,23 +158,14 @@ def check_subscription_status(user_id):
 def send_targeted_subscription_msg(chat_id, user_id):
     unsub_list = get_unsubscribed_channels(user_id)
     markup = InlineKeyboardMarkup(row_width=1)
-    
     for ch in unsub_list:
         markup.add(InlineKeyboardButton(ch["name"], url=ch["url"]))
+    markup.add(InlineKeyboardButton("✨ تم الاشتراك في قناتي، دخول البوت ✅", callback_data="check_sub"))
     
-    markup.add(InlineKeyboardButton("✨ تم الاشتراك في القنوات، دخول البوت ✅", callback_data="check_sub"))
-    
-    if len(unsub_list) == len(CHANNELS_DATA):
-        msg = (
-            "👋 **أهلاً بك يا أواّد في بوت حماية الأرقام الرسمي!**\n\n"
-            "📌 **لاستخدام البوت والحصول على الأكواد، يرجى الاشتراك في قنواتنا الرسمية أدناه أولاً:**"
-        )
-    else:
-        msg = (
-            "⚠️ **عذراً يا صديقي!**\n"
-            "يجب عليك الاشتراك في جميع القنوات المطلوبة لاستخدام البوت.\n\n"
-            "👉 **يرجى الاشتراك بها لتستطيع الاستمرار:**"
-        )
+    msg = (
+        "⚠️ **عذراً يا صديقي!**\n\n"
+        "📌 **لاستخدام البوت والحصول على الأرقام، يجب عليك الاشتراك في قناة المطور أولاً:**"
+    )
     bot.send_message(chat_id, msg, reply_markup=markup, parse_mode="Markdown")
 
 def rate_limit_check(user_id, seconds=1):
@@ -193,7 +175,6 @@ def rate_limit_check(user_id, seconds=1):
     user_last_action[user_id] = now
     return False
 
-# --- 5. SCRAPER & OTP ENGINE ---
 def scrape_source(url, code):
     nums = []
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
@@ -302,30 +283,10 @@ def background_auto_otp_checker(chat_id, phone_num, service_name, country_name, 
             try:
                 markup = InlineKeyboardMarkup().add(InlineKeyboardButton("📋 نسخ الكود", callback_data="copy_done"))
                 bot.send_message(chat_id, result_text, reply_markup=markup, parse_mode="Markdown")
-                
-                bot_info = bot.get_me()
-                masked_num = mask_phone_number(phone_num)
-                
-                log_markup = InlineKeyboardMarkup(row_width=2)
-                log_markup.add(
-                    InlineKeyboardButton("📢 Channel", url=CHANNELS_DATA[0]["url"]),
-                    InlineKeyboardButton(f"🔒 {otp_code}", callback_data="copy_done")
-                )
-                log_markup.add(InlineKeyboardButton("🤖 Get Number", url=f"https://t.me/{bot_info.username}"))
-                
-                log_text = (
-                    f"**AWAD MASTER BOT PANEL**\n"
-                    f"🌍 #{country_name.split()[0]} {service_name} `+{masked_num}` | 🔊 Arabic\n\n"
-                    f"# {otp_code} هو رمز {service_name} الخاص بك\n\n"
-                    f"🔗 Prefix: `/pre {phone_num[:7]}`"
-                )
-                bot.send_message(CHANNEL_LOG_ID, log_text, reply_markup=log_markup, parse_mode="Markdown")
-                
             except Exception:
                 pass
             break
 
-# --- 6. KEYBOARDS ---
 def main_reply_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
@@ -351,25 +312,21 @@ def get_countries_for_service_keyboard(service_key):
     for c_key, c_data in countries_dict.items():
         country_btns.append(InlineKeyboardButton(f"{c_data['name']}", callback_data=f"get_num_{service_key}_{c_key}"))
     markup.add(*country_btns)
-    
     markup.add(InlineKeyboardButton("⬅️ رجوع لقائمة التطبيقات", callback_data="show_all_services"))
     return markup
 
 def send_welcome(chat_id):
-    msg = "مرحباً بك يا صديقي في نظام الأرقام الأسطوري الفائق v12.0! 👋\nاختر التطبيق المراد تفعيله من القائمة بالأسفل:"
+    msg = "مرحباً بك يا أواّد في بوت الأرقام الخاص بك! 👋\nاختر التطبيق المراد تفعيله من القائمة بالأسفل:"
     bot.send_message(chat_id, msg, reply_markup=main_reply_keyboard())
     bot.send_message(chat_id, "📌 **اختر التطبيق أولاً:**", reply_markup=get_services_only_keyboard())
 
-# --- 7. BOT HANDLERS ---
 @bot.message_handler(commands=['start'])
 def start_cmd(message):
     user_id = message.from_user.id
     if is_banned(user_id): return
-    
     save_user(user_id)
-    
     if MAINTENANCE_MODE and user_id != ADMIN_ID:
-        return bot.send_message(message.chat.id, "🛠 **عذراً، البوت حالياً تحت الصيانة والتحديث.**\nيرجى المحاولة في وقت لاحق.", parse_mode="Markdown")
+        return bot.send_message(message.chat.id, "🛠 **البوت تحت الصيانة حالياً.**", parse_mode="Markdown")
     
     if not check_subscription_status(user_id):
         return send_targeted_subscription_msg(message.chat.id, user_id)
@@ -379,83 +336,38 @@ def start_cmd(message):
 @bot.callback_query_handler(func=lambda call: call.data == "check_sub")
 def verify_sub_cb(call):
     user_id = call.from_user.id
-    if MAINTENANCE_MODE and user_id != ADMIN_ID:
-        return bot.answer_callback_query(call.id, "🛠 البوت تحت الصيانة حالياً!", show_alert=True)
-        
     if check_subscription_status(user_id):
         try: bot.delete_message(call.message.chat.id, call.message.message_id)
         except Exception: pass
         send_welcome(call.message.chat.id)
     else:
-        bot.answer_callback_query(call.id, "❌ لم تقم بالاشتراك في جميع القنوات المطلوبة بعد!", show_alert=True)
+        bot.answer_callback_query(call.id, "❌ يجب عليك الاشتراك في القناة أولاً!", show_alert=True)
 
 @bot.message_handler(func=lambda message: message.text in ["🌐 الأقسام والتطبيقات", "📢 مشاركة البوت", "👨‍💻 تواصل مع المطور", "⚙️ لوحة المطور"])
 def handle_menu_buttons(message):
     user_id = message.from_user.id
     if is_banned(user_id): return
-    
-    if MAINTENANCE_MODE and user_id != ADMIN_ID:
-        return bot.send_message(message.chat.id, "🛠 **البوت تحت الصيانة حالياً.**", parse_mode="Markdown")
-        
+    if MAINTENANCE_MODE and user_id != ADMIN_ID: return
     if rate_limit_check(user_id): return
-    
+
     if not check_subscription_status(user_id):
         return send_targeted_subscription_msg(message.chat.id, user_id)
 
     txt = message.text
     if txt == "🌐 الأقسام والتطبيقات":
         bot.send_message(message.chat.id, "📱 **اختر التطبيق المراد تفعيله:**", reply_markup=get_services_only_keyboard())
-
     elif txt == "📢 مشاركة البوت":
         bot_info = bot.get_me()
-        share_url = f"https://t.me/share/url?url=https://t.me/{bot_info.username}&text=اشترك%20في%20أفضل%20بوت%20أرقام%20مجانية%20وفورية!⚡"
-        markup = InlineKeyboardMarkup().add(InlineKeyboardButton("🚀 إرسال رابط البوت للأصدقاء", url=share_url))
-        bot.send_message(message.chat.id, "📢 **شارك البوت مع أصدقائك للحصول على أرقام ممتازة!**", reply_markup=markup, parse_mode="Markdown")
-
+        share_url = f"https://t.me/share/url?url=https://t.me/{bot_info.username}&text=اشترك%20في%20أفضل%20بوت%20أرقام!⚡"
+        markup = InlineKeyboardMarkup().add(InlineKeyboardButton("🚀 إرسال رابط البوت", url=share_url))
+        bot.send_message(message.chat.id, "📢 **شارك البوت مع أصدقائك:**", reply_markup=markup, parse_mode="Markdown")
     elif txt == "👨‍💻 تواصل مع المطور":
         markup = InlineKeyboardMarkup().add(InlineKeyboardButton("👨‍💻 مالك البوت", url=DEVELOPER_URL))
-        bot.send_message(message.chat.id, "💬 **للتواصل مع المطور أو تقديم الاستفسارات:**", reply_markup=markup, parse_mode="Markdown")
-
+        bot.send_message(message.chat.id, "💬 **للتواصل مع المطور:**", reply_markup=markup, parse_mode="Markdown")
     elif txt == "⚙️ لوحة المطور":
-        if user_id != ADMIN_ID:
-            return bot.send_message(message.chat.id, "❌ هذه اللوحة خاصة بالمطور فقط.")
+        if user_id != ADMIN_ID: return
         total_users = get_users_count()
-        status_text = "مفعلة 🛠" if MAINTENANCE_MODE else "معطلة (يعمل طبيعي) 🟢"
-        
-        admin_markup = InlineKeyboardMarkup(row_width=2)
-        admin_markup.add(
-            InlineKeyboardButton("📊 إحصائيات البوت", callback_data="admin_stats"),
-            InlineKeyboardButton("🧹 تنظيف الكاش", callback_data="admin_clear_cache")
-        )
-        
-        bot.send_message(
-            message.chat.id, 
-            f"⚙️ **لوحة التحكم للمطور (النسخة الفائقة v12.0):**\n\n"
-            f"👥 إجمالي المستخدمين: `{total_users}` عضو\n"
-            f"🛠 وضع الصيانة: `{status_text}`\n"
-            f"🔒 الحماية والأمان ضد القنوات الوهمية: `مفعلة 100%`", 
-            reply_markup=admin_markup, 
-            parse_mode="Markdown"
-        )
-
-@bot.callback_query_handler(func=lambda call: call.data in ["admin_stats", "admin_clear_cache"])
-def handle_admin_callbacks(call):
-    if call.from_user.id != ADMIN_ID:
-        return bot.answer_callback_query(call.id, "❌ للمطور فقط!", show_alert=True)
-        
-    if call.data == "admin_stats":
-        stats_msg = (
-            f"📊 **إحصائيات البوت الحية:**\n\n"
-            f"📞 إجمالي الأرقام المُولدة والممسوحة: `{bot_stats['numbers_generated']}`\n"
-            f"🔑 إجمالي الأكواد المُستلمة بنجاح: `{bot_stats['otps_fetched']}`\n"
-            f"👥 إجمالي المستخدمين: `{get_users_count()}`"
-        )
-        bot.answer_callback_query(call.id, "📊 إليك إحصائيات البوت الشاملة", show_alert=False)
-        bot.send_message(call.message.chat.id, stats_msg, parse_mode="Markdown")
-        
-    elif call.data == "admin_clear_cache":
-        recent_numbers_cache.clear()
-        bot.answer_callback_query(call.id, "✅ تم تنظيف الذاكرة المؤقتة بنجاح!", show_alert=True)
+        bot.send_message(message.chat.id, f"⚙️ إجمالي المستخدمين: `{total_users}`", parse_mode="Markdown")
 
 @bot.callback_query_handler(func=lambda call: call.data == "show_all_services")
 def show_all_services_cb(call):
@@ -472,11 +384,9 @@ def show_countries_cb(call):
     user_id = call.from_user.id
     if not check_subscription_status(user_id):
         return send_targeted_subscription_msg(call.message.chat.id, user_id)
-        
     service_key = call.data.replace("show_countries_", "")
     service_info = SERVICES_DATA.get(service_key, {"name": "التطبيق"})
-    
-    msg_text = f"🔥 **الدول المضمونة 100% لتفعيل ({service_info['name']}):**"
+    msg_text = f"🔥 **الدول لتفعيل ({service_info['name']}):**"
     try:
         bot.edit_message_text(msg_text, call.message.chat.id, call.message.message_id, reply_markup=get_countries_for_service_keyboard(service_key))
     except Exception:
@@ -486,15 +396,10 @@ def show_countries_cb(call):
 def get_number_cb(call):
     user_id = call.from_user.id
     if is_banned(user_id): return
-    
-    if MAINTENANCE_MODE and user_id != ADMIN_ID:
-        return bot.answer_callback_query(call.id, "🛠 البوت تحت الصيانة حالياً!", show_alert=True)
-        
     if not check_subscription_status(user_id):
-        bot.answer_callback_query(call.id, "❌ يرجى الاشتراك في قنوات المطور أولاً!", show_alert=True)
         return send_targeted_subscription_msg(call.message.chat.id, user_id)
-    
-    bot.answer_callback_query(call.id, "⚡ جاري سحب رقم أسطوري حقيقي ومضمون...")
+        
+    bot.answer_callback_query(call.id, "⚡ جاري سحب الرقم...")
     
     parts = call.data.replace("get_num_", "").split("_")
     service_key = parts[0]
@@ -507,23 +412,15 @@ def get_number_cb(call):
     local_part = full_num[len(country_info['code']):]
     
     msg_text = (
-        f"🔥 **تنبيه نظام الأرقام الفورية:**\n"
-        f"🌐 **الدولة:** {country_info['name']} **شغالة نار 🔥**\n"
-        f"📌 **التطبيق المستهدف:** {service_info['name']}\n"
-        f"📞 **رمز الدولة:** `+{country_info['code']}`\n"
-        f"📞 **الرقم المحلي:** `{local_part}`\n"
-        f"📞 **الرقم كاملاً:** `+{full_num}`\n\n"
-        f"💡 *أدخل هذا الرقم في تطبيق {service_info['name']} الآن. إذا تأخر الكود معك قليلاً، يُرجى تشغيل تطبيق **VPN** لضمان سرعة الاستلام الفوري! ⚡*"
+        f"📞 **الرقم كاملاً:** `+{full_num}`\n"
+        f"🌐 **الدولة:** {country_info['name']}\n"
+        f"📌 **التطبيق:** {service_info['name']}"
     )
     
     markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        InlineKeyboardButton("🌐 Change Country", callback_data=f"show_countries_{service_key}"),
-        InlineKeyboardButton("🔄 Change Number", callback_data=f"get_num_{service_key}_{country_key}")
-    )
-    markup.add(
-        InlineKeyboardButton("✉️ OTP Group", url=GROUP_LINK["url"]),
-        InlineKeyboardButton("🏠 التطبيقات", callback_data="show_all_services")
+        InlineKeyboardButton("🌐 تغيير الدولة", callback_data=f"show_countries_{service_key}"),
+        InlineKeyboardButton("🔄 تغيير الرقم", callback_data=f"get_num_{service_key}_{country_key}")
     )
     
     try:
@@ -531,16 +428,14 @@ def get_number_cb(call):
     except Exception:
         bot.send_message(call.message.chat.id, msg_text, reply_markup=markup, parse_mode="Markdown")
     
-    Thread(target=background_auto_otp_checker, args=(call.message.chat.id, full_num, service_info['name'], country_info['name'], service_key, country_key), daemon=True).start()
+    Thread(target=background_auto_otp_checker, args=(call.message.chat.id, full_num, service_info['name'], country_info['name'], service_key, country_key), daemon=True).strart() # type: ignore
 
 @bot.callback_query_handler(func=lambda call: call.data == "copy_done")
 def copy_done_cb(call):
-    bot.answer_callback_query(call.id, "✅ تم النسخ بنجاح!", show_alert=True)
+    bot.answer_callback_query(call.id, "✅ تم النسخ!", show_alert=True)
 
-# --- 8. MAIN RUNNER ---
 if __name__ == "__main__":
     keep_alive()
-    print("Elite Master Bot v12.0 Ultimate is running securely 24/7...")
     while True:
         try:
             bot.infinity_polling(timeout=20, long_polling_timeout=10)
