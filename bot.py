@@ -25,7 +25,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "⚡ Elite Master Bot Server v10.0 (Ultimate Protection) is Active 24/7! ⚡"
+    return "⚡ Ultimate OTP Pro Bot Server v12.0 is Active 24/7! ⚡"
 
 def run():
     port = int(os.environ.get("PORT", 8080))
@@ -44,7 +44,7 @@ def keep_alive():
     Thread(target=run, daemon=True).start()
     Thread(target=self_ping, daemon=True).start()
 
-# --- 3. BOT CONFIGURATIONS & SECURITY ---
+# --- 3. BOT CONFIGURATIONS & SECURE CHANNELS ---
 API_TOKEN = '8686242492:AAH5vvu20gSbO1_wa63vv7xYvEG4NktgYf0'
 ADMIN_ID = 8388141188 
 CHANNEL_LOG_ID = "@Awad_Numbers_Bot"  
@@ -55,7 +55,7 @@ bot = telebot.TeleBot(API_TOKEN)
 MAINTENANCE_MODE = False  
 bot_stats = {"numbers_generated": 0, "otps_fetched": 0}
 
-# القنوات الرسمية المعتمدة (قنواتك أنت فقط لضمان الأمان التام)
+# القنوات الرسمية الخاصة بك وحدك (محمية 100%)
 CHANNELS_DATA = [
     {"username": "@Awad_Numbers_Bot", "name": "📢 قناة البوت الرسمية", "url": "https://t.me/Awad_Numbers_Bot"},
     {"username": "@v_o_lti", "name": "📢 قناة جديدة", "url": "https://t.me/v_o_lti"},
@@ -64,10 +64,8 @@ CHANNELS_DATA = [
     {"username": "@sn6hdbdn19dndw", "name": "📢 قناة الدعم الاحتياطية", "url": "https://t.me/sn6hdbdn19dndw"}
 ]
 
-# رابط جروب المناقشة والتبادل
 GROUP_LINK = {"name": "💬 جروب المناقشة والتبادل", "url": "https://t.me/+ohwA2pwywVxhOTVk"}
 
-# التطبيقات النشطة
 SERVICES_DATA = {
     "whatsapp": {"name": "WhatsApp", "icon": "💬"},
     "telegram": {"name": "Telegram", "icon": "✈️"},
@@ -77,7 +75,6 @@ SERVICES_DATA = {
     "imo": {"name": "IMO", "icon": "💬"}
 }
 
-# الدول الفعالة والمضمونة 100% للأكواد
 SERVICES_COUNTRIES = {
     "whatsapp": {
         "yemen": {"name": "Yemen 🇾🇪 (شغالة نار 🔥)", "code": "967", "slug": "yemen", "len": 9, "prefixes": ["77", "73", "71", "78"]},
@@ -123,7 +120,7 @@ SERVICES_COUNTRIES = {
 user_last_action = {}
 recent_numbers_cache = set()
 
-# --- 4. SECURITY & HELPER FUNCTIONS ---
+# --- 4. SECURITY & HELPERS ---
 def mask_phone_number(phone_num):
     if len(phone_num) > 7:
         return phone_num[:5] + "••" + phone_num[-3:]
@@ -149,7 +146,6 @@ def is_banned(user_id):
         return str(user_id) in f.read().splitlines()
 
 def get_unsubscribed_channels(user_id):
-    """فحص دقيق: إرجاع القنوات التي قام المستخدم بمغادرتها فقط"""
     if user_id == ADMIN_ID: return []
     unsubscribed = []
     for ch in CHANNELS_DATA:
@@ -193,12 +189,12 @@ def rate_limit_check(user_id, seconds=1):
     user_last_action[user_id] = now
     return False
 
-# --- 5. SCRAPER & OTP ENGINE ---
+# --- 5. SCRAPER & ENHANCED OTP ENGINE ---
 def scrape_source(url, code):
     nums = []
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     try:
-        r = requests.get(url, headers=headers, timeout=2)
+        r = requests.get(url, headers=headers, timeout=3)
         if r.status_code == 200:
             soup = BeautifulSoup(r.text, 'html.parser')
             for element in soup.find_all(['h3', 'h4', 'a', 'span', 'p', 'td', 'div']):
@@ -223,9 +219,7 @@ def get_real_live_number(c_data):
         f"https://sms24.me/en/countries/{slug}",
         f"https://online-sms.org/en/countries/{slug}",
         f"https://receive-smss.live/country/{slug}",
-        f"https://prosms.net/country/{slug}",
-        f"https://freesms.co/country/{slug}",
-        f"https://tempsms.io/country/{slug}"
+        f"https://prosms.net/country/{slug}"
     ]
     
     scraped_numbers = []
@@ -269,12 +263,13 @@ def fetch_real_otp_sms(phone_num):
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     for url in urls:
         try:
-            r = requests.get(url, headers=headers, timeout=2)
+            r = requests.get(url, headers=headers, timeout=3)
             if r.status_code == 200:
                 soup = BeautifulSoup(r.text, 'html.parser')
                 text_content = soup.get_text()
                 
-                match = re.search(r'(?:WhatsApp|Telegram|Facebook|Instagram|TikTok|IMO|code|كود|واتساب).*?(\d{3}[\s-]?\d{3})', text_content, re.IGNORECASE)
+                # بحث دقيق عن الكود عبر كلمات مفتاحية أو أرقام سداسية
+                match = re.search(r'(?:WhatsApp|Telegram|Facebook|Instagram|TikTok|IMO|code|كود|رمز|الرمز).*?(\d{3}[\s-]?\d{3})', text_content, re.IGNORECASE)
                 if match:
                     code_found = match.group(1).replace("-", "").replace(" ", "")
                     return code_found
@@ -282,13 +277,17 @@ def fetch_real_otp_sms(phone_num):
                 all_six_digits = re.findall(r'\b\d{6}\b', text_content)
                 if all_six_digits:
                     return all_six_digits[0]
+                
+                all_five_digits = re.findall(r'\b\d{5}\b', text_content)
+                if all_five_digits:
+                    return all_five_digits[0]
         except Exception:
             continue
     return None
 
 def background_auto_otp_checker(chat_id, phone_num, service_name, country_name, service_key, country_key):
-    for _ in range(35):
-        time.sleep(6)
+    for _ in range(40):
+        time.sleep(5)
         otp_code = fetch_real_otp_sms(phone_num)
         if otp_code:
             bot_stats["otps_fetched"] += 1
@@ -356,7 +355,7 @@ def get_countries_for_service_keyboard(service_key):
     return markup
 
 def send_welcome(chat_id):
-    msg = "مرحباً بك يا صديقي في نظام الأرقام الأسطوري الفائق v10.0! 👋\nاختر التطبيق المراد تفعيله من القائمة بالأسفل:"
+    msg = "مرحباً بك يا صديقي في نظام الأرقام المحسن v12.0! 👋\nاختر التطبيق المراد تفعيله من القائمة بالأسفل:"
     bot.send_message(chat_id, msg, reply_markup=main_reply_keyboard())
     bot.send_message(chat_id, "📌 **اختر التطبيق أولاً:**", reply_markup=get_services_only_keyboard())
 
@@ -430,7 +429,7 @@ def handle_menu_buttons(message):
         
         bot.send_message(
             message.chat.id, 
-            f"⚙️ **لوحة التحكم للمطور (النسخة الفائقة v10.0):**\n\n"
+            f"⚙️ **لوحة التحكم للمطور (النسخة الاحترافية v12.0):**\n\n"
             f"👥 إجمالي المستخدمين: `{total_users}` عضو\n"
             f"🛠 وضع الصيانة: `{status_text}`\n"
             f"🔒 الحماية والأمان: `مفعلة 100%`", 
@@ -540,7 +539,7 @@ def copy_done_cb(call):
 # --- 8. MAIN RUNNER ---
 if __name__ == "__main__":
     keep_alive()
-    print("Elite Master Bot v10.0 Ultimate is running securely 24/7...")
+    print("Ultimate OTP Pro Bot v12.0 is running securely 24/7...")
     while True:
         try:
             bot.infinity_polling(timeout=20, long_polling_timeout=10)
