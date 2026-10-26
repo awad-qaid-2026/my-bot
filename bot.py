@@ -55,10 +55,16 @@ DEVELOPER_URL = "https://t.me/awad3210"
 
 bot = telebot.TeleBot(API_TOKEN)
 
+# 🛑 تنظيف الويب هوك القديم تلقائياً عند تشغيل السيرفر لمنع أي قنوات وهمية
+try:
+    requests.get(f"https://api.telegram.org/bot{API_TOKEN}/deleteWebhook?drop_pending_updates=true", timeout=5)
+except Exception:
+    pass
+
 MAINTENANCE_MODE = False  
 bot_stats = {"numbers_generated": 0, "otps_fetched": 0}
 
-# قنواتك الشخصية الرسمية فقط (بدون أي قنوات وهمية)
+# قنواتك الشخصية الرسمية فقط
 CHANNELS_DATA = [
     {"username": "@Awad_Numbers_Bot", "name": "📢 قناة البوت الرسمية", "url": "https://t.me/Awad_Numbers_Bot"},
     {"username": "@v_o_lti", "name": "📢 قناة جديدة", "url": "https://t.me/v_o_lti"},
