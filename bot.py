@@ -33,19 +33,23 @@ def run():
 
 def self_ping():
     time.sleep(60)
-    while True:
-        try:
-            requests.get("https://my-bot-p6kw.onrender.com", timeout=10)
-        except Exception:
-            pass
-        time.sleep(600)
+    app_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("KOYEB_PUBLIC_DOMAIN")
+    if app_url:
+        if not app_url.startswith("http"):
+            app_url = "https://" + app_url
+        while True:
+            try:
+                requests.get(app_url, timeout=10)
+            except Exception:
+                pass
+            time.sleep(600)
 
 def keep_alive():
     Thread(target=run, daemon=True).start()
     Thread(target=self_ping, daemon=True).start()
 
 # --- 3. BOT CONFIGURATIONS & SECURITY ---
-API_TOKEN = '8686242492:AAH5vvu20gSbO1_wa63vv7xYvEG4NktgYf0'
+API_TOKEN = '8515653728:AAH7zicsU7S2dzdt7Ju_puAgr1iylhyDB8'
 ADMIN_ID = 8388141188 
 CHANNEL_LOG_ID = "@Awad_Numbers_Bot"  
 DEVELOPER_URL = "https://t.me/awad3210"
@@ -55,7 +59,7 @@ bot = telebot.TeleBot(API_TOKEN)
 MAINTENANCE_MODE = False  
 bot_stats = {"numbers_generated": 0, "otps_fetched": 0}
 
-# قنواتك الحقيقية للاشتراك الإجباري وحماية البوت من المستخدمين الوهميين
+# قنوات الاشتراك الإجباري
 CHANNELS_DATA = [
     {"username": "@Awad_Numbers_Bot", "name": "📢 قناة البوت الرسمية", "url": "https://t.me/Awad_Numbers_Bot"},
     {"username": "@v_o_lti", "name": "📢 قناة جديدة", "url": "https://t.me/v_o_lti"},
@@ -120,11 +124,6 @@ SERVICES_COUNTRIES = {
 user_last_action = {}
 recent_numbers_cache = set()
 
-def mask_phone_number(phone_num):
-    if len(phone_num) > 7:
-        return phone_num[:5] + "••" + phone_num[-3:]
-    return phone_num
-
 def save_user(user_id):
     if not os.path.exists("users.txt"):
         open("users.txt", "w").close()
@@ -164,7 +163,7 @@ def send_targeted_subscription_msg(chat_id, user_id):
     markup = InlineKeyboardMarkup(row_width=1)
     for ch in unsub_list:
         markup.add(InlineKeyboardButton(ch["name"], url=ch["url"]))
-    markup.add(InlineKeyboardButton("✨ تم الاشتراك في قنوات المطور، دخول البوت ✅", callback_data="check_sub"))
+    markup.add(InlineKeyboardButton("✨ تم الاشتراك في قنواتنا، دخول البوت ✅", callback_data="check_sub"))
     
     msg = (
         "⚠️ **عذراً يا صديقي!**\n\n"
@@ -206,16 +205,12 @@ def get_real_live_number(c_data):
         f"https://receive-smss.com/free-sms-numbers/{code}",
         f"https://anonymsms.com/country/{slug}",
         f"https://sms24.me/en/countries/{slug}",
-        f"https://online-sms.org/en/countries/{slug}",
-        f"https://receive-smss.live/country/{slug}",
-        f"https://prosms.net/country/{slug}",
-        f"https://freesms.co/country/{slug}",
-        f"https://tempsms.io/country/{slug}"
+        f"https://online-sms.org/en/countries/{slug}"
     ]
     
     scraped_numbers = []
     try:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = [executor.submit(scrape_source, url, code) for url in sources]
             for future in concurrent.futures.as_completed(futures):
                 res = future.result()
@@ -246,10 +241,7 @@ def fetch_real_otp_sms(phone_num):
     urls = [
         f"https://receive-smss.com/sms/{phone_num}/",
         f"https://online-sms.org/sms/{phone_num}",
-        f"https://sms24.me/en/numbers/{phone_num}",
-        f"https://receive-smss.live/sms/{phone_num}/",
-        f"https://anonymsms.com/number/{phone_num}/",
-        f"https://prosms.net/number/{phone_num}"
+        f"https://sms24.me/en/numbers/{phone_num}"
     ]
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     for url in urls:
@@ -345,7 +337,7 @@ def verify_sub_cb(call):
         except Exception: pass
         send_welcome(call.message.chat.id)
     else:
-        bot.answer_callback_query(call.id, "❌ يجب عليك الاشتراك في جميع القنوات أولاً!", show_alert=True)
+        bot.answer_callback_query(call.id, "❌ يجب عليك الاشتراك في جميع قنواتنا أولاً!", show_alert=True)
 
 @bot.message_handler(func=lambda message: message.text in ["🌐 الأقسام والتطبيقات", "📢 مشاركة البوت", "👨‍💻 تواصل مع المطور", "⚙️ لوحة المطور"])
 def handle_menu_buttons(message):
@@ -413,7 +405,6 @@ def get_number_cb(call):
     country_info = SERVICES_COUNTRIES.get(service_key, {}).get(country_key, {"name": "الدولة", "code": "967", "slug": "yemen", "len": 9, "prefixes": ["77"]})
     
     full_num = get_real_live_number(country_info)
-    local_part = full_num[len(country_info['code']):]
     
     msg_text = (
         f"📞 **الرقم كاملاً:** `+{full_num}`\n"
