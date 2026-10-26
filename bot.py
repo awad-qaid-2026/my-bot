@@ -49,7 +49,7 @@ def keep_alive():
     Thread(target=self_ping, daemon=True).start()
 
 # --- 3. BOT CONFIGURATIONS & SECURITY ---
-API_TOKEN = '8686242492:AAH5vvu20gSb01_wa63vv7xYvEG4NktgYf0'
+API_TOKEN = '8686242492:AAFpUbb-xm1XkZih9TRlesi-U-Su6vFetiA'
 ADMIN_ID = 8388141188 
 DEVELOPER_URL = "https://t.me/awad3210"
 
