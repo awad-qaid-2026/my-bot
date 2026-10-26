@@ -51,7 +51,6 @@ def keep_alive():
 # --- 3. BOT CONFIGURATIONS & SECURITY ---
 API_TOKEN = '8515653728:AAH7zicsU7S2dzdt7Ju_puAgr1iylhyDB8'
 ADMIN_ID = 8388141188 
-CHANNEL_LOG_ID = "@Awad_Numbers_Bot"  
 DEVELOPER_URL = "https://t.me/awad3210"
 
 bot = telebot.TeleBot(API_TOKEN)
@@ -59,7 +58,7 @@ bot = telebot.TeleBot(API_TOKEN)
 MAINTENANCE_MODE = False  
 bot_stats = {"numbers_generated": 0, "otps_fetched": 0}
 
-# قنوات الاشتراك الإجباري
+# قنواتك الشخصية الرسمية فقط (ممنوع دخول أي قناة أخرى)
 CHANNELS_DATA = [
     {"username": "@Awad_Numbers_Bot", "name": "📢 قناة البوت الرسمية", "url": "https://t.me/Awad_Numbers_Bot"},
     {"username": "@v_o_lti", "name": "📢 قناة جديدة", "url": "https://t.me/v_o_lti"},
@@ -67,8 +66,6 @@ CHANNELS_DATA = [
     {"username": "@breakthroughawad210", "name": "📢 تعليم اختراق الجوالات وتوقيف الواتساب", "url": "https://t.me/breakthroughawad210"},
     {"username": "@sn6hdbdn19dndw", "name": "📢 قناة الدعم الاحتياطية", "url": "https://t.me/sn6hdbdn19dndw"}
 ]
-
-GROUP_LINK = {"name": "💬 جروب المناقشة والتبادل", "url": "https://t.me/+ohwA2pwywVxhOTVk"}
 
 SERVICES_DATA = {
     "whatsapp": {"name": "WhatsApp", "icon": "💬"},
@@ -84,40 +81,23 @@ SERVICES_COUNTRIES = {
         "yemen": {"name": "Yemen 🇾🇪 (شغالة نار 🔥)", "code": "967", "slug": "yemen", "len": 9, "prefixes": ["77", "73", "71", "78"]},
         "sudan": {"name": "Sudan 🇸🇩 (مضمونة للأكواد ⚡)", "code": "249", "slug": "sudan", "len": 9, "prefixes": ["91", "92", "12"]},
         "egypt": {"name": "Egypt 🇪🇬 (أرقام عربية قوية 🚀)", "code": "20", "slug": "egypt", "len": 10, "prefixes": ["10", "11", "12", "15"]},
-        "saudi": {"name": "Saudi Arabia 🇸🇦 (نشطة جداً)", "code": "966", "slug": "saudi-arabia", "len": 9, "prefixes": ["50", "53", "55", "54"]},
-        "palestine": {"name": "Palestine 🇵🇸 (سرعة فائقة)", "code": "970", "slug": "palestine", "len": 9, "prefixes": ["59", "56"]},
-        "jordan": {"name": "Jordan 🇯🇴 (ممتازة)", "code": "962", "slug": "jordan", "len": 9, "prefixes": ["79", "78", "77"]}
+        "saudi": {"name": "Saudi Arabia 🇸🇦 (نشطة جداً)", "code": "966", "slug": "saudi-arabia", "len": 9, "prefixes": ["50", "53", "55", "54"]}
     },
     "telegram": {
-        "usa": {"name": "USA 🇺🇸 (تليجرام نار 🔥)", "code": "1", "slug": "united-states", "len": 10, "prefixes": ["201", "202", "203", "415"]},
-        "italy": {"name": "Italy 🇮🇹 (مضمونة ⚡)", "code": "39", "slug": "italy", "len": 10, "prefixes": ["320", "330", "340"]},
-        "egypt": {"name": "Egypt 🇪🇬 (عربي سريع)", "code": "20", "slug": "egypt", "len": 10, "prefixes": ["10", "11", "12"]},
-        "vietnam": {"name": "Vietnam 🇻🇳 (سريعة)", "code": "84", "slug": "vietnam", "len": 9, "prefixes": ["90", "91", "98", "32"]},
-        "syria": {"name": "Syria 🇸🇾 (نشطة)", "code": "963", "slug": "syria", "len": 9, "prefixes": ["98", "99", "93", "94"]}
+        "usa": {"name": "USA 🇺🇸 (تليجرام نار 🔥)", "code": "1", "slug": "united-states", "len": 10, "prefixes": ["201", "202", "203"]},
+        "italy": {"name": "Italy 🇮🇹 (مضمونة ⚡)", "code": "39", "slug": "italy", "len": 10, "prefixes": ["320", "330"]}
     },
     "facebook": {
-        "usa": {"name": "USA 🇺🇸 (فيسبوك صاروخ 🚀)", "code": "1", "slug": "united-states", "len": 10, "prefixes": ["415", "212", "310"]},
-        "canada": {"name": "Canada 🇨🇦 (شغالة نار 🔥)", "code": "1", "slug": "canada", "len": 10, "prefixes": ["416", "604", "514"]},
-        "morocco": {"name": "Morocco 🇲🇦 (مضمونة عربياً)", "code": "212", "slug": "morocco", "len": 9, "prefixes": ["6", "7"]},
-        "guinea": {"name": "Guinea 🇬🇳 (مضمونة)", "code": "224", "slug": "guinea", "len": 9, "prefixes": ["62", "65", "66"]}
+        "usa": {"name": "USA 🇺🇸 (فيسبوك صاروخ 🚀)", "code": "1", "slug": "united-states", "len": 10, "prefixes": ["415", "212"]}
     },
     "instagram": {
-        "usa": {"name": "USA 🇺🇸 (انستغرام ناري 🔥)", "code": "1", "slug": "united-states", "len": 10, "prefixes": ["213", "323", "714"]},
-        "canada": {"name": "Canada 🇨🇦 (أكواد مضمونة ⚡)", "code": "1", "slug": "canada", "len": 10, "prefixes": ["250", "403", "780"]},
-        "iraq": {"name": "Iraq 🇮🇶 (نشطة جداً)", "code": "964", "slug": "iraq", "len": 10, "prefixes": ["77", "78", "75", "79"]},
-        "italy": {"name": "Italy 🇮🇹 (سريعة)", "code": "39", "slug": "italy", "len": 10, "prefixes": ["320", "340"]}
+        "usa": {"name": "USA 🇺🇸 (انستغرام ناري 🔥)", "code": "1", "slug": "united-states", "len": 10, "prefixes": ["213", "323"]}
     },
     "tiktok": {
-        "usa": {"name": "USA 🇺🇸 (تيك توك شغال 🔥)", "code": "1", "slug": "united-states", "len": 10, "prefixes": ["501", "502", "503"]},
-        "algeria": {"name": "Algeria 🇩🇿 (عربي مضمون)", "code": "213", "slug": "algeria", "len": 9, "prefixes": ["5", "6", "7"]},
-        "vietnam": {"name": "Vietnam 🇻🇳 (مضمونة ⚡)", "code": "84", "slug": "vietnam", "len": 9, "prefixes": ["90", "91", "98"]},
-        "malawi": {"name": "Malawi 🇲🇼 (سريعة)", "code": "265", "slug": "malawi", "len": 9, "prefixes": ["88", "99", "77"]}
+        "usa": {"name": "USA 🇺🇸 (تيك توك شغال 🔥)", "code": "1", "slug": "united-states", "len": 10, "prefixes": ["501", "502"]}
     },
     "imo": {
-        "yemen": {"name": "Yemen 🇾🇪 (إيمو نار 🔥)", "code": "967", "slug": "yemen", "len": 9, "prefixes": ["77", "73", "71", "78"]},
-        "sudan": {"name": "Sudan 🇸🇩 (مضمونة ⚡)", "code": "249", "slug": "sudan", "len": 9, "prefixes": ["91", "92", "12"]},
-        "egypt": {"name": "Egypt 🇪🇬 (نشط وسريع)", "code": "20", "slug": "egypt", "len": 10, "prefixes": ["10", "11", "12"]},
-        "ethiopia": {"name": "Ethiopia 🇪🇹 (نشطة)", "code": "251", "slug": "ethiopia", "len": 9, "prefixes": ["91", "92", "93"]}
+        "yemen": {"name": "Yemen 🇾🇪 (إيمو نار 🔥)", "code": "967", "slug": "yemen", "len": 9, "prefixes": ["77", "73"]}
     }
 }
 
@@ -200,17 +180,13 @@ def scrape_source(url, code):
 def get_real_live_number(c_data):
     code = c_data["code"]
     slug = c_data["slug"]
-    
     sources = [
         f"https://receive-smss.com/free-sms-numbers/{code}",
-        f"https://anonymsms.com/country/{slug}",
-        f"https://sms24.me/en/countries/{slug}",
-        f"https://online-sms.org/en/countries/{slug}"
+        f"https://anonymsms.com/country/{slug}"
     ]
-    
     scraped_numbers = []
     try:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             futures = [executor.submit(scrape_source, url, code) for url in sources]
             for future in concurrent.futures.as_completed(futures):
                 res = future.result()
@@ -233,52 +209,39 @@ def get_real_live_number(c_data):
     recent_numbers_cache.add(chosen)
     if len(recent_numbers_cache) > 200:
         recent_numbers_cache.pop()
-        
-    bot_stats["numbers_generated"] += 1
     return chosen
 
 def fetch_real_otp_sms(phone_num):
-    urls = [
-        f"https://receive-smss.com/sms/{phone_num}/",
-        f"https://online-sms.org/sms/{phone_num}",
-        f"https://sms24.me/en/numbers/{phone_num}"
-    ]
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-    for url in urls:
-        try:
-            r = requests.get(url, headers=headers, timeout=2)
-            if r.status_code == 200:
-                soup = BeautifulSoup(r.text, 'html.parser')
-                text_content = soup.get_text()
-                
-                match = re.search(r'(?:WhatsApp|Telegram|Facebook|Instagram|TikTok|IMO|code|كود|واتساب).*?(\d{3}[\s-]?\d{3})', text_content, re.IGNORECASE)
-                if match:
-                    code_found = match.group(1).replace("-", "").replace(" ", "")
-                    return code_found
-                
-                all_six_digits = re.findall(r'\b\d{6}\b', text_content)
-                if all_six_digits:
-                    return all_six_digits[0]
-        except Exception:
-            continue
+    url = f"https://receive-smss.com/sms/{phone_num}/"
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    try:
+        r = requests.get(url, headers=headers, timeout=2)
+        if r.status_code == 200:
+            soup = BeautifulSoup(r.text, 'html.parser')
+            text_content = soup.get_text()
+            match = re.search(r'(?:WhatsApp|Telegram|Facebook|Instagram|TikTok|IMO|code|كود|واتساب).*?(\d{3}[\s-]?\d{3})', text_content, re.IGNORECASE)
+            if match:
+                return match.group(1).replace("-", "").replace(" ", "")
+            all_six_digits = re.findall(r'\b\d{6}\b', text_content)
+            if all_six_digits:
+                return all_six_digits[0]
+    except Exception:
+        pass
     return None
 
-def background_auto_otp_checker(chat_id, phone_num, service_name, country_name, service_key, country_key):
-    for _ in range(35):
+def background_auto_otp_checker(chat_id, phone_num, service_name, country_name):
+    for _ in range(25):
         time.sleep(6)
         otp_code = fetch_real_otp_sms(phone_num)
         if otp_code:
-            bot_stats["otps_fetched"] += 1
             result_text = (
-                f"✅ **تم استقبال كود التفعيل الحقيقي بنجاح!**\n\n"
+                f"✅ **تم استقبال كود التفعيل بنجاح!**\n\n"
                 f"📌 **التطبيق:** {service_name}\n"
                 f"📞 **الرقم:** `+{phone_num}`\n"
-                f"🔑 **كود التفعيل:** `{otp_code}`\n\n"
-                f"🔒 *لا تشارك الكود مع أي شخص!*"
+                f"🔑 **كود التفعيل:** `{otp_code}`"
             )
             try:
-                markup = InlineKeyboardMarkup().add(InlineKeyboardButton("📋 نسخ الكود", callback_data="copy_done"))
-                bot.send_message(chat_id, result_text, reply_markup=markup, parse_mode="Markdown")
+                bot.send_message(chat_id, result_text, parse_mode="Markdown")
             except Exception:
                 pass
             break
@@ -423,11 +386,7 @@ def get_number_cb(call):
     except Exception:
         bot.send_message(call.message.chat.id, msg_text, reply_markup=markup, parse_mode="Markdown")
     
-    Thread(target=background_auto_otp_checker, args=(call.message.chat.id, full_num, service_info['name'], country_info['name'], service_key, country_key), daemon=True).start()
-
-@bot.callback_query_handler(func=lambda call: call.data == "copy_done")
-def copy_done_cb(call):
-    bot.answer_callback_query(call.id, "✅ تم النسخ!", show_alert=True)
+    Thread(target=background_auto_otp_checker, args=(call.message.chat.id, full_num, service_info['name'], country_info['name']), daemon=True).start()
 
 if __name__ == "__main__":
     keep_alive()
