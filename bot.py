@@ -49,7 +49,7 @@ def keep_alive():
     Thread(target=self_ping, daemon=True).start()
 
 # --- 3. BOT CONFIGURATIONS & SECURITY ---
-API_TOKEN = '8515653728:AAH7zicsU7S2dzdt7Ju_puAgr1iylhyDB8'
+API_TOKEN = '8686242492:AAH5vvu20gSb01_wa63vv7xYvEG4NktgYf0'
 ADMIN_ID = 8388141188 
 DEVELOPER_URL = "https://t.me/awad3210"
 
@@ -58,7 +58,7 @@ bot = telebot.TeleBot(API_TOKEN)
 MAINTENANCE_MODE = False  
 bot_stats = {"numbers_generated": 0, "otps_fetched": 0}
 
-# قنواتك الشخصية الرسمية فقط (ممنوع دخول أي قناة أخرى)
+# قنواتك الشخصية الرسمية فقط (بدون أي قنوات وهمية)
 CHANNELS_DATA = [
     {"username": "@Awad_Numbers_Bot", "name": "📢 قناة البوت الرسمية", "url": "https://t.me/Awad_Numbers_Bot"},
     {"username": "@v_o_lti", "name": "📢 قناة جديدة", "url": "https://t.me/v_o_lti"},
